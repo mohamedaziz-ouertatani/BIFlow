@@ -10,18 +10,10 @@ from shared.schemas.data_contracts import AnalysisResult, KPICatalog
 
 
 class BIAnalystAgent:
-    """
-    Analyzes the KPI catalog to detect trends/anomalies and generate
-    business insights.
-
-    TODO (owner): implement the trend detection + insight generation flow,
-    deciding what statistical/LLM-based methods to use.
-    """
+    """Analyzes the KPI catalog to detect trends/anomalies and generate business insights."""
 
     def run(self, kpis: KPICatalog) -> AnalysisResult:
-        """Analyzes the KPI catalog and returns trends + insights.
-
-        TODO (owner): implement — call detect_trends, then generate_insights,
-        and assemble the AnalysisResult.
-        """
-        raise NotImplementedError("TODO: implement BI Analyst Agent pipeline")
+        """Analyzes the KPI catalog and returns trends + insights."""
+        trends = detect_trends(kpis)
+        insights = generate_insights(kpis, trends)
+        return AnalysisResult(insights=insights, trends=trends)

@@ -1,15 +1,30 @@
-"""Trend and anomaly detection logic for the BI Analyst Agent."""
+"""Trend and anomaly detection logic for the BI Analyst Agent.
+
+Since the agent only receives a single KPICatalog snapshot (no history to
+compare against), "trend detection" here means evaluating each KPI that has
+a natural business threshold and flagging it healthy vs. concerning.
+"""
 
 from typing import Any
 
 from shared.schemas.data_contracts import KPICatalog
 
+THRESHOLDS = {
+    "on_time_delivery_rate": 0.9,
+    "average_review_score": 4.0,
+}
+
 
 def detect_trends(kpis: KPICatalog) -> dict[str, Any]:
-    """Detects trends and anomalies across the KPI catalog's computed values.
-
-    TODO (owner): implement — e.g. time-series trend detection, statistical
-    anomaly detection (z-score, IQR), or LLM-assisted pattern spotting.
-    Returns a dict suitable for AnalysisResult.trends.
-    """
-    raise NotImplementedError("TODO: implement trend/anomaly detection")
+    """Evaluates threshold-backed KPIs and flags each as healthy or concerning."""
+    trends = {}
+    for name, threshold in THRESHOLDS.items():
+        if name not in kpis.computed_values:
+            continue
+        value = kpis.computed_values[name]
+        trends[name] = {
+            "value": value,
+            "threshold": threshold,
+            "status": "healthy" if value >= threshold else "concerning",
+        }
+    return trends
