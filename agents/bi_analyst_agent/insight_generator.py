@@ -39,3 +39,40 @@ def generate_insights(kpis: KPICatalog, trends: dict[str, Any]) -> list[Insight]
             )
         )
     return insights
+
+
+MONTHLY_TREND_LABELS = {
+    "total_revenue": "Revenue",
+    "order_count": "Order volume",
+    "average_review_score": "Review score",
+}
+
+SEVERITY_BY_DIRECTION = {
+    "increasing": "info",
+    "flat": "info",
+    "decreasing": "warning",
+}
+
+
+def generate_monthly_trend_insights(monthly_trends: dict[str, Any]) -> list[Insight]:
+    """Turns each real month-over-month trend into a human-readable Insight."""
+    insights = []
+    for metric_name, trend in monthly_trends.items():
+        label = MONTHLY_TREND_LABELS.get(metric_name, metric_name)
+        title = f"{label} {trend['direction']} month-over-month"
+        previous_value = round(trend["previous_value"], 2)
+        latest_value = round(trend["latest_value"], 2)
+        description = (
+            f"{label} went from {previous_value} in {trend['previous_month']} "
+            f"to {latest_value} in {trend['latest_month']} "
+            f"({trend['pct_change']:+.1f}%)."
+        )
+        insights.append(
+            Insight(
+                title=title,
+                description=description,
+                related_kpi=metric_name,
+                severity=SEVERITY_BY_DIRECTION.get(trend["direction"], "info"),
+            )
+        )
+    return insights

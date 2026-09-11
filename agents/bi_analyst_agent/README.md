@@ -3,34 +3,50 @@
 **Owner:** Person C
 
 ## Purpose
-Analyzes the KPI catalog to flag which KPIs are healthy vs. concerning and
-generates human-readable insights from that. Its output drives what the
-Dashboard Generator Agent visualizes.
+Analyzes the pipeline output to flag which KPIs are healthy vs. concerning
+*and* detect real month-over-month trends, generating human-readable
+insights from both. Its output drives what the Dashboard Generator Agent
+visualizes.
 
 ## Input
-`shared.schemas.data_contracts.KPICatalog`
+`shared.schemas.data_contracts.CleanedDataset`, `shared.schemas.data_contracts.KPICatalog`
 
 ## Output
 `shared.schemas.data_contracts.AnalysisResult`
 
 ## How it works
-The agent only receives a single `KPICatalog` snapshot per run — there's no
-historical data to compare against, so "trend detection" here means
-threshold-based evaluation rather than time-series analysis:
+Two kinds of trend detection, combined:
 
-1. **`trend_detection.detect_trends(kpis)`** — evaluates each KPI that has a
-   natural business threshold (`on_time_delivery_rate` ≥ 0.9,
-   `average_review_score` ≥ 4.0) and flags it `"healthy"` or `"concerning"`.
-   Other KPIs (revenue, AOV, order count) have no natural threshold and
-   aren't evaluated.
-2. **`insight_generator.generate_insights(kpis, trends)`** — turns each
-   evaluation into an `Insight`: `info` severity when healthy, `warning`
-   when concerning.
+1. **Threshold evaluation** (`trend_detection.detect_trends(kpis)`) — the
+   single `KPICatalog` snapshot has no history to compare against, so this
+   evaluates each KPI with a natural business threshold
+   (`on_time_delivery_rate` ≥ 0.9, `average_review_score` ≥ 4.0) and flags
+   it `"healthy"` or `"concerning"`.
+2. **Real month-over-month trends** (`monthly_trends.compute_monthly_trends`)
+   — reads the analytical CSV from `cleaned.dataset_path`, buckets rows by
+   the calendar month of `order_purchase_timestamp`, and compares the last
+   two months with data for `total_revenue`, `order_count`, and
+   `average_review_score` (direction + % change). This is genuine
+   time-series analysis, not just a snapshot check — it works today because
+   the Olist data itself spans many months, not because the pipeline has
+   been run multiple times.
+
+Both feed `insight_generator.py`, which turns each evaluation/trend into an
+`Insight` (`info` for healthy/increasing-or-flat, `warning` for
+concerning/decreasing). `AnalysisResult.trends` nests the monthly trends
+under `trends["monthly"]` to avoid colliding with the threshold-based keys
+(both use KPI names like `average_review_score`).
+
+**Caveat:** with the small 500-order sample, the most recent calendar month
+is often partial (the sample's last order is 2018-08-26, not the 26th of a
+full month), so the latest month-over-month comparison can look more
+dramatic than it would against the full dataset in `data/raw/olist`.
 
 ## Key files
 - `agent.py` — main agent entrypoint (`BIAnalystAgent`), called by the Orchestrator
 - `trend_detection.py` — threshold-based KPI evaluation
-- `insight_generator.py` — turns evaluations into human-readable insights
+- `monthly_trends.py` — real month-over-month trend detection from the analytical data
+- `insight_generator.py` — turns evaluations/trends into human-readable insights
 
 ## Local dev
 ```bash
@@ -39,8 +55,8 @@ pytest tests/
 ```
 
 ## TODO
-- [x] Implement core logic
+- [x] Implement threshold-based evaluation
+- [x] Implement real month-over-month trend detection
 - [x] Write unit tests against sample data in `data/sample/`
-- [ ] Add real time-series trend detection once historical KPI data exists
-  (would need `BIAnalystAgent` to also receive the analytical dataset, not
-  just the KPICatalog — see `docs/architecture.md` open questions)
+- [ ] Re-run against the full dataset in `data/raw/olist` to get trends
+  unaffected by sample-size/partial-month noise

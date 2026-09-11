@@ -16,7 +16,7 @@ def test_agent_run_produces_audit_report_from_real_pipeline_output(tmp_path):
     )
     cleaned = DataEngineeringAgent(output_path=str(tmp_path / "analytical.csv")).run(raw)
     kpis = KPISemanticAgent().run(cleaned)
-    analysis = BIAnalystAgent().run(kpis)
+    analysis = BIAnalystAgent().run(cleaned, kpis)
     dashboard = DashboardAgent(layout_path=str(tmp_path / "layout.json")).run(analysis, kpis)
 
     result = AuditorXAIAgent().run(cleaned, kpis, analysis, dashboard)

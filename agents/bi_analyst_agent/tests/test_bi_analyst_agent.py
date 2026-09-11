@@ -16,27 +16,30 @@ def test_agent_run_produces_analysis_result_from_real_kpi_catalog(tmp_path):
     cleaned = DataEngineeringAgent(output_path=analytical_path).run(raw)
     kpis = KPISemanticAgent().run(cleaned)
 
-    result = BIAnalystAgent().run(kpis)
+    result = BIAnalystAgent().run(cleaned, kpis)
 
     assert isinstance(result, AnalysisResult)
-    assert result.trends == {
-        "on_time_delivery_rate": {
-            "value": kpis.computed_values["on_time_delivery_rate"],
-            "threshold": 0.9,
-            "status": "healthy"
-            if kpis.computed_values["on_time_delivery_rate"] >= 0.9
-            else "concerning",
-        },
-        "average_review_score": {
-            "value": kpis.computed_values["average_review_score"],
-            "threshold": 4.0,
-            "status": "healthy"
-            if kpis.computed_values["average_review_score"] >= 4.0
-            else "concerning",
-        },
+    assert result.trends["on_time_delivery_rate"] == {
+        "value": kpis.computed_values["on_time_delivery_rate"],
+        "threshold": 0.9,
+        "status": "healthy"
+        if kpis.computed_values["on_time_delivery_rate"] >= 0.9
+        else "concerning",
     }
-    assert len(result.insights) == 2
-    assert {i.related_kpi for i in result.insights} == {
-        "on_time_delivery_rate",
-        "average_review_score",
+    assert result.trends["average_review_score"] == {
+        "value": kpis.computed_values["average_review_score"],
+        "threshold": 4.0,
+        "status": "healthy"
+        if kpis.computed_values["average_review_score"] >= 4.0
+        else "concerning",
     }
+
+    # The Olist sample spans many months, so real month-over-month trends
+    # should be present too, nested under "monthly" to avoid colliding with
+    # the threshold-based keys above.
+    assert "monthly" in result.trends
+    assert "total_revenue" in result.trends["monthly"]
+
+    threshold_insight_kpis = {"on_time_delivery_rate", "average_review_score"}
+    monthly_insight_kpis = set(result.trends["monthly"].keys())
+    assert {i.related_kpi for i in result.insights} == threshold_insight_kpis | monthly_insight_kpis

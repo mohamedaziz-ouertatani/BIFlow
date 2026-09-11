@@ -94,10 +94,14 @@ for the host-vs-container connection details, including the port 5433 remap).
 3. ~~Get `docker-compose up` running with all stub services~~ — done.
 4. ~~Implement all 5 agents + Orchestrator wiring~~ — done.
 5. ~~Load the Data Engineering Agent's analytical table into Postgres~~ — done, opt-in.
-6. Replace the BI Analyst Agent's threshold-only "trend detection" with real
-   time-series analysis once historical KPI data exists (see
+6. ~~Replace threshold-only "trend detection" with real time-series analysis~~
+   — done: `BIAnalystAgent` now buckets the analytical table by calendar
+   month and detects genuine month-over-month trends (see
    `agents/bi_analyst_agent/README.md`).
 7. Thread `business_domain` through the shared contracts properly instead of
    defaulting it on `KPISemanticAgent` (see that agent's README).
 8. Make Postgres loading the actual default for real (non-test) pipeline
    runs, e.g. via a CLI entrypoint that passes `get_settings().database_url`.
+9. Re-run the pipeline against the full dataset in `data/raw/olist` — the
+   500-order sample makes the latest month-over-month trend noisy (partial
+   last month, small sample size).
