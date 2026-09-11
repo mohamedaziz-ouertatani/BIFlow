@@ -61,6 +61,32 @@ def test_compute_monthly_trends_counts_distinct_orders_per_month_not_items():
     assert trends["order_count"]["latest_value"] == 1.0
 
 
+def test_compute_monthly_trends_excludes_trailing_near_empty_month():
+    """A trailing month with a handful of stray orders (e.g. 1 order after
+    thousands) shouldn't be treated as "the latest month" -- it makes any
+    trend look like a total collapse when it's really just incomplete data.
+    """
+    jan_orders = [f"o{i}" for i in range(10)]
+    feb_orders = [f"p{i}" for i in range(10)]
+    order_ids = jan_orders + feb_orders + ["stray"]
+    dates = (
+        ["2018-01-05"] * 10 + ["2018-02-05"] * 10 + ["2018-03-01"]
+    )
+    df = pd.DataFrame(
+        {
+            "order_id": order_ids,
+            "order_purchase_timestamp": pd.to_datetime(dates),
+            "order_status": ["delivered"] * 21,
+            "price": [10.0] * 21,
+            "review_score": [5] * 21,
+        }
+    )
+    trends = compute_monthly_trends(df)
+    assert trends["order_count"]["previous_month"] == "2018-01"
+    assert trends["order_count"]["latest_month"] == "2018-02"
+    assert trends["order_count"]["latest_value"] == 10.0
+
+
 def test_compute_monthly_trends_omits_metrics_with_fewer_than_two_months():
     df = pd.DataFrame(
         {

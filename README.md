@@ -102,6 +102,9 @@ for the host-vs-container connection details, including the port 5433 remap).
    defaulting it on `KPISemanticAgent` (see that agent's README).
 8. Make Postgres loading the actual default for real (non-test) pipeline
    runs, e.g. via a CLI entrypoint that passes `get_settings().database_url`.
-9. Re-run the pipeline against the full dataset in `data/raw/olist` — the
-   500-order sample makes the latest month-over-month trend noisy (partial
-   last month, small sample size).
+9. ~~Re-run the pipeline against the full dataset in `data/raw/olist`~~ —
+   done: runs cleanly in ~9s on ~99k orders, and surfaced a real bug (a
+   single trailing stray order in September 2018 made trend detection
+   report a false "-100%" collapse) — fixed by excluding months whose
+   order count is far below typical volume (see
+   `agents/bi_analyst_agent/README.md`).

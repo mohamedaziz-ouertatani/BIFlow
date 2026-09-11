@@ -37,6 +37,21 @@ def _trend_entry(series: pd.Series) -> dict[str, Any] | None:
     }
 
 
+MIN_ORDER_COUNT_RATIO = 0.2
+
+
+def _complete_months(order_count_by_month: pd.Series) -> pd.Index:
+    """Excludes trailing months whose order count is far below typical
+    volume (e.g. a handful of stray orders after the data effectively
+    ends) -- otherwise they get treated as "the latest month" and produce
+    a misleading near-total-collapse trend.
+    """
+    if order_count_by_month.empty:
+        return order_count_by_month.index
+    threshold = order_count_by_month.max() * MIN_ORDER_COUNT_RATIO
+    return order_count_by_month[order_count_by_month >= threshold].index
+
+
 def compute_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, Any]:
     """Computes month-over-month trends for revenue, order count, and review score."""
     df = analytical_df.copy()
@@ -49,6 +64,11 @@ def compute_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, Any]:
     revenue_by_month = non_canceled.groupby("month")["price"].sum().sort_index()
     order_count_by_month = orders_level.groupby("month")["order_id"].nunique().sort_index()
     review_score_by_month = orders_level.groupby("month")["review_score"].mean().sort_index()
+
+    complete_months = _complete_months(order_count_by_month)
+    revenue_by_month = revenue_by_month.reindex(complete_months)
+    order_count_by_month = order_count_by_month.reindex(complete_months)
+    review_score_by_month = review_score_by_month.reindex(complete_months)
 
     trends = {}
     for name, series in (
