@@ -62,12 +62,20 @@ docker-compose up
 Each agent also has its own `requirements.txt` and `tests/` — see that
 agent's `README.md` for local dev instructions.
 
+## Dataset
+
+BIFlow uses the [Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
+dataset (`business_domain="e-commerce"`):
+
+- `data/raw/olist/` — full dataset (gitignored, not committed)
+- `data/sample/olist/` — small committed subset (500 orders + related rows)
+  for local dev and tests — see [`data/sample/README.md`](data/sample/README.md)
+
 ## Next steps
 
 1. Each owner fills in their agent's `README.md` and confirms/adjusts their
    input/output schema in `shared/schemas/data_contracts.py` (open a PR if
    changing a shared contract).
-2. Add a small sample dataset to `data/sample/` so the end-to-end test can
-   run against something real before full datasets are ready.
+2. ~~Add a small sample dataset to `data/sample/`~~ — done, using Olist.
 3. Get `docker-compose up` running with all stub services before writing
    real logic, so integration issues surface early.

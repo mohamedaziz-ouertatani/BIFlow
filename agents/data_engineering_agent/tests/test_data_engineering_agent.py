@@ -13,8 +13,8 @@ from shared.schemas.data_contracts import RawDatasetRef
 def test_agent_run_not_implemented():
     agent = DataEngineeringAgent()
     raw = RawDatasetRef(
-        dataset_path="data/sample/sample.csv",
-        dataset_name="sample",
+        dataset_path="data/sample/olist",
+        dataset_name="olist_ecommerce",
         business_domain="e-commerce",
     )
     with pytest.raises(NotImplementedError):

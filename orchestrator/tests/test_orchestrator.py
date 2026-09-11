@@ -15,8 +15,8 @@ def test_run_pipeline_not_implemented():
     """Stub test: run_pipeline should currently raise NotImplementedError."""
     orchestrator = BIFlowOrchestrator()
     raw = RawDatasetRef(
-        dataset_path="data/sample/sample.csv",
-        dataset_name="sample",
+        dataset_path="data/sample/olist",
+        dataset_name="olist_ecommerce",
         business_domain="e-commerce",
     )
     with pytest.raises(NotImplementedError):
