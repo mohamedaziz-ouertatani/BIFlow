@@ -1,28 +1,31 @@
-"""Tests for the BI Semantic & KPI Agent.
+"""Tests for the BI Semantic & KPI Agent, run against real Olist sample data."""
 
-TODO (owner): once implemented, test get_kpi_definitions() per business
-domain and the full agent.run() flow against data/sample/.
-"""
-
-import pytest
-
+from agents.data_engineering_agent.agent import DataEngineeringAgent
 from agents.kpi_semantic_agent.agent import KPISemanticAgent
-from shared.schemas.data_contracts import CleanedDataset, ProfilingReport
+from shared.schemas.data_contracts import KPICatalog, RawDatasetRef
+
+SAMPLE_DIR = "data/sample/olist"
 
 
-def test_agent_run_not_implemented():
-    agent = KPISemanticAgent()
-    cleaned = CleanedDataset(
-        dataset_path="data/processed/sample_cleaned.csv",
-        data_quality_report=ProfilingReport(
-            n_rows=0,
-            n_columns=0,
-            column_types={},
-            missing_values={},
-            duplicate_rows=0,
-            anomalies=[],
-        ),
-        transformations_applied=[],
+def test_agent_run_computes_kpi_catalog_from_cleaned_dataset(tmp_path):
+    analytical_path = str(tmp_path / "analytical.csv")
+    raw = RawDatasetRef(
+        dataset_path=SAMPLE_DIR, dataset_name="olist_ecommerce", business_domain="e-commerce"
     )
-    with pytest.raises(NotImplementedError):
-        agent.run(cleaned)
+    cleaned = DataEngineeringAgent(output_path=analytical_path).run(raw)
+
+    agent = KPISemanticAgent()
+    result = agent.run(cleaned)
+
+    assert isinstance(result, KPICatalog)
+    assert {kpi.name for kpi in result.kpis} == {
+        "total_revenue",
+        "average_order_value",
+        "order_count",
+        "average_review_score",
+        "on_time_delivery_rate",
+    }
+    # Not all 500 sampled orders have items after cleaning (some order_items
+    # rows are dropped for null/negative price), so order_count can be <= 500.
+    assert 0 < result.computed_values["order_count"] <= 500
+    assert result.computed_values["total_revenue"] > 0
