@@ -13,10 +13,28 @@ and produces a runnable dashboard plus a spec for the Auditor/XAI agent.
 ## Output
 `shared.schemas.data_contracts.DashboardSpec`
 
+## How it works
+1. **`layout_builder.build_layout(analysis, kpis)`** — builds a JSON-serializable
+   layout: one `kpi_cards` entry per KPI (name, label, value) and one
+   `insights` entry per `Insight` (title, description, severity).
+2. **`DashboardAgent.run(analysis, kpis)`** — builds the layout, writes it to
+   `data/processed/dashboard_layout.json` (configurable via
+   `layout_path`), and returns a `DashboardSpec`.
+3. **`app.py`** — a Streamlit page that reads that layout JSON (path via the
+   `DASHBOARD_LAYOUT_PATH` env var, falling back to the default) and renders
+   a metric per KPI card plus an insights panel (colored by severity:
+   info/warning/critical). Run directly with `streamlit run app.py`, or via
+   `docker-compose up dashboard_agent` (served on port 8501).
+
+Note: the BI Analyst Agent (which produces `AnalysisResult`) isn't built
+yet — `DashboardAgent` was implemented and tested against the real
+`AnalysisResult` contract using hand-built `Insight` objects, so it's ready
+to consume real insights once that agent exists.
+
 ## Key files
-- `agent.py` — main agent entrypoint, called by the Orchestrator
-- `layout_builder.py` — builds the dashboard layout spec from KPIs + insights
-- `app.py` — Streamlit/Dash entrypoint
+- `agent.py` — main agent entrypoint (`DashboardAgent`), called by the Orchestrator
+- `layout_builder.py` — builds the JSON-serializable dashboard layout
+- `app.py` — Streamlit entrypoint, tested headlessly via `streamlit.testing.v1.AppTest`
 
 ## Local dev
 ```bash
@@ -26,6 +44,7 @@ streamlit run app.py
 ```
 
 ## TODO
-- [ ] Implement core logic
-- [ ] Write unit tests against sample data in `data/sample/`
-- [ ] Document any LLM prompts used in `prompts/` (create if needed)
+- [x] Implement core logic
+- [x] Write unit tests against sample data in `data/sample/`
+- [ ] Swap in real `AnalysisResult` insights once the BI Analyst Agent exists
+- [ ] Add a chart (e.g. revenue or review-score trend) once trend data is available

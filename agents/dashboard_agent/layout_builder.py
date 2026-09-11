@@ -6,9 +6,26 @@ from shared.schemas.data_contracts import AnalysisResult, KPICatalog
 
 
 def build_layout(analysis: AnalysisResult, kpis: KPICatalog) -> dict[str, Any]:
-    """Builds a dashboard layout spec (sections, charts, KPI cards) from analysis + KPIs.
+    """Builds a JSON-serializable dashboard layout spec (KPI cards + insights panel)."""
+    kpi_cards = [
+        {
+            "name": kpi.name,
+            "label": kpi.description,
+            "value": kpis.computed_values.get(kpi.name),
+        }
+        for kpi in kpis.kpis
+    ]
 
-    TODO (owner): implement — decide layout structure (e.g. sections per KPI
-    dimension, an insights panel) that app.py can render.
-    """
-    raise NotImplementedError("TODO: implement dashboard layout construction")
+    insights = [
+        {
+            "title": insight.title,
+            "description": insight.description,
+            "severity": insight.severity,
+        }
+        for insight in analysis.insights
+    ]
+
+    return {
+        "kpi_cards": kpi_cards,
+        "insights": insights,
+    }
