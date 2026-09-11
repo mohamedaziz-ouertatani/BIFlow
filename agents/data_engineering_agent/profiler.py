@@ -1,14 +1,87 @@
 """Dataset profiling logic for the Data Engineering Agent."""
 
+import os
+from typing import Any
+
+import pandas as pd
+
 from shared.schemas.data_contracts import ProfilingReport, RawDatasetRef
+
+TABLE_FILENAMES = {
+    "orders": "olist_orders_dataset.csv",
+    "customers": "olist_customers_dataset.csv",
+    "order_items": "olist_order_items_dataset.csv",
+    "order_payments": "olist_order_payments_dataset.csv",
+    "order_reviews": "olist_order_reviews_dataset.csv",
+    "products": "olist_products_dataset.csv",
+    "sellers": "olist_sellers_dataset.csv",
+    "geolocation": "olist_geolocation_dataset.csv",
+    "category_translation": "product_category_name_translation.csv",
+}
+
+
+def load_all_tables(dataset_dir: str) -> dict[str, pd.DataFrame]:
+    """Loads every Olist table from dataset_dir, keyed by logical table name."""
+    return {
+        logical_name: pd.read_csv(os.path.join(dataset_dir, filename))
+        for logical_name, filename in TABLE_FILENAMES.items()
+    }
+
+
+def profile_table(name: str, df: pd.DataFrame) -> dict[str, Any]:
+    """Profiles a single table: row/column counts, types, missing values, duplicates, anomalies."""
+    n_rows = len(df)
+    n_columns = len(df.columns)
+    column_types = {col: str(dtype) for col, dtype in df.dtypes.items()}
+    missing_values = (
+        {col: ratio for col, ratio in (df.isna().sum() / n_rows).items()} if n_rows else {}
+    )
+    duplicate_rows = int(df.duplicated().sum())
+
+    anomalies = []
+    if duplicate_rows:
+        anomalies.append(f"{duplicate_rows} duplicate rows")
+    for col, ratio in missing_values.items():
+        if ratio > 0.5:
+            anomalies.append(f"column '{col}' has {ratio * 100:.1f}% missing values")
+
+    return {
+        "n_rows": n_rows,
+        "n_columns": n_columns,
+        "column_types": column_types,
+        "missing_values": missing_values,
+        "duplicate_rows": duplicate_rows,
+        "anomalies": anomalies,
+    }
 
 
 def profile_dataset(raw_dataset: RawDatasetRef) -> ProfilingReport:
-    """Profiles a raw dataset: row/column counts, types, missing values, anomalies.
+    """Profiles every table in raw_dataset.dataset_path and aggregates into one ProfilingReport."""
+    tables = load_all_tables(raw_dataset.dataset_path)
 
-    TODO (owner): implement using Pandas/Polars — load dataset from
-    raw_dataset.dataset_path, compute schema, missing-value ratios per
-    column, duplicate row count, and flag anomalies (e.g. outliers,
-    inconsistent types).
-    """
-    raise NotImplementedError("TODO: implement dataset profiling")
+    n_rows = 0
+    n_columns = 0
+    column_types: dict[str, str] = {}
+    missing_values: dict[str, float] = {}
+    duplicate_rows = 0
+    anomalies: list[str] = []
+
+    for table_name, df in tables.items():
+        report = profile_table(table_name, df)
+        n_rows += report["n_rows"]
+        n_columns += report["n_columns"]
+        duplicate_rows += report["duplicate_rows"]
+        for col, dtype in report["column_types"].items():
+            column_types[f"{table_name}.{col}"] = dtype
+        for col, ratio in report["missing_values"].items():
+            missing_values[f"{table_name}.{col}"] = ratio
+        anomalies.extend(f"{table_name}: {a}" for a in report["anomalies"])
+
+    return ProfilingReport(
+        n_rows=n_rows,
+        n_columns=n_columns,
+        column_types=column_types,
+        missing_values=missing_values,
+        duplicate_rows=duplicate_rows,
+        anomalies=anomalies,
+    )

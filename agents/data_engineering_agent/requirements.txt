@@ -1,5 +1,2 @@
 pydantic>=2.0
 pandas
-polars
-sqlalchemy
-psycopg2-binary
