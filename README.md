@@ -20,7 +20,7 @@ RAW DATA
    +-> [BI Analyst Agent]          (Trends, anomalies, insights)
    |        |
    |        v
-   +-> [Dashboard Generator Agent] (Interactive dashboard)
+   +-> [Dashboard Generator Agent] (JSON API for the Next.js dashboard)
    |        |
    |        v
    +-> [BI Auditor / XAI Agent]    (Validation, explanations, traceability)
@@ -47,6 +47,7 @@ See [`docs/architecture.md`](docs/architecture.md) for more detail.
 
 - `orchestrator/` — coordinates the pipeline across all agents
 - `agents/` — one folder per agent, each independently runnable/testable
+- `frontend/` — Next.js dashboard (polls the Dashboard Generator Agent's API)
 - `shared/` — shared Pydantic schemas, config, and utils used by all components
 - `data/` — raw/processed data (gitignored) and a committed sample dataset
 - `docs/` — architecture notes, KPI catalog, report templates
@@ -81,10 +82,13 @@ dataset too). Run the whole pipeline for real with:
 python -m orchestrator data/sample/olist e-commerce
 ```
 
-— or `BIFlowOrchestrator().run_pipeline(raw_dataset)` from Python. Run
-`pytest` from the repo root, or `streamlit run agents/dashboard_agent/app.py`
-after running the pipeline once to see the dashboard. CI runs the full
-suite (including real-Postgres tests) on every push/PR to `main` — see
+— or `BIFlowOrchestrator().run_pipeline(raw_dataset)` from Python. Then, to
+see the dashboard: run the API (`uvicorn agents.dashboard_agent.api:create_app --factory`)
+and the frontend (`npm run dev` in `frontend/`, or both via
+`docker-compose up dashboard_agent frontend`) and open `http://localhost:3000`
+— it polls the API every 5s. Run `pytest` from the repo root for the Python
+suite. CI runs both the Python suite (including real-Postgres tests) and a
+frontend lint+build check on every push/PR to `main` — see
 [`.github/workflows/tests.yml`](.github/workflows/tests.yml).
 
 Postgres loading is wired in and **on by default for the CLI** (opt-out
@@ -117,3 +121,10 @@ for the host-vs-container connection details, including the port 5433 remap.
    report a false "-100%" collapse) — fixed by excluding months whose
    order count is far below typical volume (see
    `agents/bi_analyst_agent/README.md`).
+10. ~~Swap the dashboard for a Next.js frontend~~ — done: the Streamlit UI
+    is gone, replaced by `frontend/` (Next.js, polls every 5s) backed by a
+    small FastAPI JSON API in `agents/dashboard_agent/api.py`.
+11. Add a trend chart to the frontend using `AnalysisResult.trends["monthly"]`
+    (computed by `BIAnalystAgent` but not yet surfaced visually).
+12. Add automated frontend tests (Jest/Playwright) — currently verified via
+    the backend's `pytest` suite plus manual browser checks.

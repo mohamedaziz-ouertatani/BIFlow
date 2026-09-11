@@ -2,19 +2,23 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "biflow-dashboard",
+      "name": "biflow-api",
       "runtimeExecutable": "python",
       "runtimeArgs": [
         "-m",
-        "streamlit",
-        "run",
-        "agents/dashboard_agent/app.py",
-        "--server.port",
-        "8502",
-        "--server.headless",
-        "true"
+        "uvicorn",
+        "agents.dashboard_agent.api:create_app",
+        "--factory",
+        "--port",
+        "8000"
       ],
-      "port": 8502
+      "port": 8000
+    },
+    {
+      "name": "biflow-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
+      "port": 3000
     }
   ]
 }

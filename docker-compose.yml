@@ -62,9 +62,22 @@ services:
       dockerfile: agents/dashboard_agent/Dockerfile
     env_file: .env
     ports:
-      - "8501:8501"
+      - "8000:8000"
     volumes:
       - .:/app
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - dashboard_agent
+    environment:
+      # Fetched from the browser, not from inside the docker network -- must
+      # be reachable from the host, not the dashboard_agent service name.
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
 
   auditor_xai_agent:
     build:

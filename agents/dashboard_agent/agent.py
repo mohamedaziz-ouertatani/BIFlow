@@ -11,7 +11,7 @@ from agents.dashboard_agent.layout_builder import build_layout
 from shared.schemas.data_contracts import AnalysisResult, DashboardSpec, KPICatalog
 
 DEFAULT_LAYOUT_PATH = "data/processed/dashboard_layout.json"
-DEFAULT_DASHBOARD_URL = "http://localhost:8501"
+DEFAULT_DASHBOARD_URL = "http://localhost:3000"
 
 
 class DashboardAgent:
@@ -24,7 +24,7 @@ class DashboardAgent:
         self.dashboard_url = dashboard_url
 
     def run(self, analysis: AnalysisResult, kpis: KPICatalog) -> DashboardSpec:
-        """Builds the dashboard layout, writes it for app.py to render, and returns its spec."""
+        """Builds the dashboard layout, writes it for api.py to serve, and returns its spec."""
         layout = build_layout(analysis, kpis)
 
         os.makedirs(os.path.dirname(self.layout_path) or ".", exist_ok=True)

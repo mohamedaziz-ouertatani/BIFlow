@@ -10,6 +10,6 @@ RUN pip install --no-cache-dir -r requirements-dev.txt -r agents/dashboard_agent
 
 COPY . .
 
-EXPOSE 8501
+EXPOSE 8000
 
-CMD ["streamlit", "run", "agents/dashboard_agent/app.py", "--server.address=0.0.0.0"]
+CMD ["uvicorn", "agents.dashboard_agent.api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
