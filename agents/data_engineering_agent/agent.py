@@ -40,4 +40,5 @@ class DataEngineeringAgent:
             dataset_path=output_path,
             data_quality_report=profiling_report,
             transformations_applied=clean_transformations + etl_transformations,
+            business_domain=raw_dataset.business_domain,
         )

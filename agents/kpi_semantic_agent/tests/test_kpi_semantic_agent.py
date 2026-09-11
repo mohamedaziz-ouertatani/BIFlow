@@ -1,8 +1,10 @@
 """Tests for the BI Semantic & KPI Agent, run against real Olist sample data."""
 
+import pytest
+
 from agents.data_engineering_agent.agent import DataEngineeringAgent
 from agents.kpi_semantic_agent.agent import KPISemanticAgent
-from shared.schemas.data_contracts import KPICatalog, RawDatasetRef
+from shared.schemas.data_contracts import CleanedDataset, KPICatalog, ProfilingReport, RawDatasetRef
 
 SAMPLE_DIR = "data/sample/olist"
 
@@ -29,3 +31,22 @@ def test_agent_run_computes_kpi_catalog_from_cleaned_dataset(tmp_path):
     # rows are dropped for null/negative price), so order_count can be <= 500.
     assert 0 < result.computed_values["order_count"] <= 500
     assert result.computed_values["total_revenue"] > 0
+
+
+def test_agent_run_uses_business_domain_from_cleaned_dataset_not_a_constructor_default():
+    """KPISemanticAgent must read business_domain off CleanedDataset -- there's
+    no constructor override, since CleanedDataset now carries it through
+    from RawDatasetRef.
+    """
+    cleaned = CleanedDataset(
+        dataset_path="data/sample/olist/does_not_matter.csv",
+        data_quality_report=ProfilingReport(
+            n_rows=0, n_columns=0, column_types={}, missing_values={}, duplicate_rows=0, anomalies=[]
+        ),
+        transformations_applied=[],
+        business_domain="banking",
+    )
+    with pytest.raises(KeyError):
+        # "banking" has no KPI definitions yet -- this proves business_domain
+        # was actually read from `cleaned`, not defaulted to "e-commerce".
+        KPISemanticAgent().run(cleaned)

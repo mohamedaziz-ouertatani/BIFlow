@@ -43,5 +43,3 @@ KPIs defined in `agents/kpi_semantic_agent/kpi_definitions.py` for the
 
 ## TODO
 - [ ] Add category/state breakdowns (via `KPIDefinition.dimensions`) once needed downstream
-- [ ] Thread `business_domain` through the shared contracts so `KPISemanticAgent`
-  doesn't have to default it (see TODO in `agents/kpi_semantic_agent/agent.py`)

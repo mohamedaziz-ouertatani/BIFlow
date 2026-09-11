@@ -9,7 +9,9 @@ output is the semantic layer the BI Analyst Agent builds insights on top of.
 
 ## Input
 `shared.schemas.data_contracts.CleanedDataset` — `dataset_path` points at the
-order-item-level analytical CSV written by the Data Engineering Agent.
+order-item-level analytical CSV written by the Data Engineering Agent, and
+`business_domain` (carried through from `RawDatasetRef`) selects which KPI
+definitions to use.
 
 ## Output
 `shared.schemas.data_contracts.KPICatalog` — 5 e-commerce KPIs (see
@@ -22,12 +24,6 @@ order-item-level analytical CSV written by the Data Engineering Agent.
 - `kpi_definitions.py` — KPI definitions per business domain
 - `kpi_computation.py` — computes KPI values from the analytical table
 
-## Note on business_domain
-`CleanedDataset` doesn't carry `business_domain` today, so `KPISemanticAgent`
-defaults to `"e-commerce"` via its constructor. TODO (owner): thread
-`business_domain` through the shared contracts if/when a second domain is
-added.
-
 ## Local dev
 ```bash
 pip install -r requirements.txt
@@ -37,4 +33,6 @@ pytest tests/
 ## TODO
 - [x] Implement core logic
 - [x] Write unit tests against sample data in `data/sample/`
+- [x] Thread `business_domain` through the shared contract (`CleanedDataset`)
+  instead of defaulting it on the agent's constructor
 - [ ] Add category/state KPI breakdowns (see `docs/kpi_catalog.md`)

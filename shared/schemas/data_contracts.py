@@ -39,6 +39,7 @@ class CleanedDataset(BaseModel):
     dataset_path: str
     data_quality_report: ProfilingReport
     transformations_applied: list[str]
+    business_domain: str  # carried through from RawDatasetRef.business_domain
 
 
 class KPIDefinition(BaseModel):

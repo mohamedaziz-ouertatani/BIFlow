@@ -98,8 +98,9 @@ for the host-vs-container connection details, including the port 5433 remap).
    — done: `BIAnalystAgent` now buckets the analytical table by calendar
    month and detects genuine month-over-month trends (see
    `agents/bi_analyst_agent/README.md`).
-7. Thread `business_domain` through the shared contracts properly instead of
-   defaulting it on `KPISemanticAgent` (see that agent's README).
+7. ~~Thread `business_domain` through the shared contracts~~ — done:
+   `CleanedDataset` now carries `business_domain` from `RawDatasetRef`, and
+   `KPISemanticAgent` reads it from there instead of a constructor default.
 8. Make Postgres loading the actual default for real (non-test) pipeline
    runs, e.g. via a CLI entrypoint that passes `get_settings().database_url`.
 9. ~~Re-run the pipeline against the full dataset in `data/raw/olist`~~ —

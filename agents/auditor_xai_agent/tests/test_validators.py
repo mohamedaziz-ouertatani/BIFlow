@@ -16,6 +16,7 @@ def _cleaned(n_rows=10, anomalies=None):
             anomalies=anomalies or [],
         ),
         transformations_applied=[],
+        business_domain="e-commerce",
     )
 
 

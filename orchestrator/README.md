@@ -19,7 +19,8 @@ other directly — all hand-offs go through the Orchestrator.
 agent directly, in-process:
 
 1. `DataEngineeringAgent(output_path=self.analytical_path, database_url=self.database_url).run(raw_dataset)` → `CleanedDataset`
-2. `KPISemanticAgent(business_domain=raw_dataset.business_domain).run(cleaned)` → `KPICatalog`
+2. `KPISemanticAgent().run(cleaned)` → `KPICatalog` (reads `business_domain`
+   off `cleaned` — see `shared/schemas/data_contracts.py`)
 3. `BIAnalystAgent().run(cleaned, kpis)` → `AnalysisResult`
 4. `DashboardAgent(layout_path=self.dashboard_layout_path).run(analysis, kpis)` → `DashboardSpec`
 5. `AuditorXAIAgent().run(cleaned, kpis, analysis, dashboard)` → `AuditReport`
