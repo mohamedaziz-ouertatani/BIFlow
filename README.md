@@ -74,18 +74,25 @@ dataset (`business_domain="e-commerce"`):
 ## Status
 
 All 5 agents and the Orchestrator are implemented and wired end-to-end
-against the Olist sample data — `BIFlowOrchestrator().run_pipeline(raw_dataset)`
-runs the full pipeline and returns a real `AuditReport`. Run `pytest` from
-the repo root, or `streamlit run agents/dashboard_agent/app.py` after
-running the pipeline once to see the dashboard. CI runs the full suite
-(including real-Postgres tests) on every push/PR to `main` — see
+against the Olist sample data (and verified against the full ~99k-order
+dataset too). Run the whole pipeline for real with:
+
+```bash
+python -m orchestrator data/sample/olist e-commerce
+```
+
+— or `BIFlowOrchestrator().run_pipeline(raw_dataset)` from Python. Run
+`pytest` from the repo root, or `streamlit run agents/dashboard_agent/app.py`
+after running the pipeline once to see the dashboard. CI runs the full
+suite (including real-Postgres tests) on every push/PR to `main` — see
 [`.github/workflows/tests.yml`](.github/workflows/tests.yml).
 
-Postgres loading is wired in but **opt-in**: pass `database_url` to
-`BIFlowOrchestrator`/`DataEngineeringAgent` to also load the analytical
-table into the `db` service's Postgres (see
+Postgres loading is wired in and **on by default for the CLI** (opt-out
+with `--no-postgres`); it stays **opt-in** at the library level
+(`BIFlowOrchestrator`/`DataEngineeringAgent`'s `database_url` param) so
+tests aren't coupled to a live database unless they ask. See
 [`agents/data_engineering_agent/README.md`](agents/data_engineering_agent/README.md#postgres-loading-opt-in)
-for the host-vs-container connection details, including the port 5433 remap).
+for the host-vs-container connection details, including the port 5433 remap.
 
 ## Next steps
 
@@ -101,8 +108,9 @@ for the host-vs-container connection details, including the port 5433 remap).
 7. ~~Thread `business_domain` through the shared contracts~~ — done:
    `CleanedDataset` now carries `business_domain` from `RawDatasetRef`, and
    `KPISemanticAgent` reads it from there instead of a constructor default.
-8. Make Postgres loading the actual default for real (non-test) pipeline
-   runs, e.g. via a CLI entrypoint that passes `get_settings().database_url`.
+8. ~~Make Postgres loading the actual default for real (non-test) pipeline
+   runs~~ — done: `python -m orchestrator` is a CLI entrypoint that loads
+   into Postgres by default (`--no-postgres` to opt out).
 9. ~~Re-run the pipeline against the full dataset in `data/raw/olist`~~ —
    done: runs cleanly in ~9s on ~99k orders, and surfaced a real bug (a
    single trailing stray order in September 2018 made trend detection

@@ -37,8 +37,28 @@ for the current single-process design; a distributed setup (agents as
 separate services called over RPC) would need a different dependency/build
 story.
 
+## CLI
+
+Run the pipeline for real (not from a Python REPL) via:
+
+```bash
+python -m orchestrator <dataset_path> <business_domain> [options]
+
+# e.g.
+python -m orchestrator data/sample/olist e-commerce
+```
+
+Unlike the library-level `BIFlowOrchestrator` (Postgres opt-in, for tests),
+the CLI loads into Postgres **by default** using `get_settings().database_url`
+— pass `--no-postgres` to skip it. Other options: `--dataset-name`,
+`--analytical-path`, `--dashboard-layout-path` (all otherwise default like
+the library does). Prints the validation status, traceability log, and
+every KPI/insight explanation; exits `1` if `validation_status == "failed"`,
+else `0`.
+
 ## Key files
 - `orchestrator.py` — main orchestrator class, one method per pipeline stage
+- `__main__.py` — CLI entrypoint (`python -m orchestrator`)
 - `execution_log.py` — execution trace/logging (not yet wired in — see TODO)
 
 ## Local dev
@@ -50,6 +70,7 @@ pytest tests/
 ## TODO
 - [x] Wire real agent calls into each `_run_*` method
 - [x] Write an end-to-end test against sample data in `data/sample/`
+- [x] Add a CLI entrypoint for real (non-test) pipeline runs
 - [ ] Implement error handling (retry/skip/halt) between stages
 - [ ] Wire `execution_log.py` for step-by-step tracing (currently the
   Auditor/XAI agent synthesizes its `traceability_log` from each stage's
