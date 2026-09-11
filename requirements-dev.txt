@@ -2,3 +2,4 @@ pydantic>=2.0
 pytest
 ruff
 black
+httpx  # needed by fastapi.testclient.TestClient (agents/dashboard_agent/tests/test_api.py)
