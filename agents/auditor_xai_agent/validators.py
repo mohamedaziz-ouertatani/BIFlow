@@ -2,15 +2,21 @@
 
 from shared.schemas.data_contracts import AnalysisResult, CleanedDataset, KPICatalog
 
+WARNING_SEVERITIES = {"warning", "critical"}
+
 
 def validate_pipeline_outputs(
     cleaned: CleanedDataset, kpis: KPICatalog, analysis: AnalysisResult
 ) -> str:
-    """Validates outputs across the pipeline and returns a validation_status.
+    """Validates outputs across the pipeline and returns a validation_status."""
+    if cleaned.data_quality_report.n_rows == 0:
+        return "failed"
 
-    TODO (owner): implement checks — e.g. data quality thresholds from
-    cleaned.data_quality_report, KPI value sanity checks, insight/KPI
-    consistency. Return a status string, e.g. "passed", "passed_with_warnings",
-    "failed".
-    """
-    raise NotImplementedError("TODO: implement pipeline output validation")
+    has_data_quality_anomalies = bool(cleaned.data_quality_report.anomalies)
+    has_concerning_insights = any(
+        insight.severity in WARNING_SEVERITIES for insight in analysis.insights
+    )
+    if has_data_quality_anomalies or has_concerning_insights:
+        return "passed_with_warnings"
+
+    return "passed"

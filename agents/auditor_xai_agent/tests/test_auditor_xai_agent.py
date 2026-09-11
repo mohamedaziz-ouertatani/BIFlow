@@ -1,37 +1,27 @@
-"""Tests for the BI Auditor / XAI Agent.
-
-TODO (owner): once implemented, test validate_pipeline_outputs() and
-generate_explanations() individually, plus the full agent.run() flow.
-"""
-
-import pytest
+"""Tests for the BI Auditor / XAI Agent, run against the real Olist pipeline output."""
 
 from agents.auditor_xai_agent.agent import AuditorXAIAgent
-from shared.schemas.data_contracts import (
-    AnalysisResult,
-    CleanedDataset,
-    DashboardSpec,
-    KPICatalog,
-    ProfilingReport,
-)
+from agents.bi_analyst_agent.agent import BIAnalystAgent
+from agents.dashboard_agent.agent import DashboardAgent
+from agents.data_engineering_agent.agent import DataEngineeringAgent
+from agents.kpi_semantic_agent.agent import KPISemanticAgent
+from shared.schemas.data_contracts import AuditReport, RawDatasetRef
+
+SAMPLE_DIR = "data/sample/olist"
 
 
-def test_agent_run_not_implemented():
-    agent = AuditorXAIAgent()
-    cleaned = CleanedDataset(
-        dataset_path="data/processed/sample_cleaned.csv",
-        data_quality_report=ProfilingReport(
-            n_rows=0,
-            n_columns=0,
-            column_types={},
-            missing_values={},
-            duplicate_rows=0,
-            anomalies=[],
-        ),
-        transformations_applied=[],
+def test_agent_run_produces_audit_report_from_real_pipeline_output(tmp_path):
+    raw = RawDatasetRef(
+        dataset_path=SAMPLE_DIR, dataset_name="olist_ecommerce", business_domain="e-commerce"
     )
-    kpis = KPICatalog(kpis=[], computed_values={})
-    analysis = AnalysisResult(insights=[], trends={})
-    dashboard = DashboardSpec(dashboard_url="", visualizations=[], kpis_shown=[])
-    with pytest.raises(NotImplementedError):
-        agent.run(cleaned, kpis, analysis, dashboard)
+    cleaned = DataEngineeringAgent(output_path=str(tmp_path / "analytical.csv")).run(raw)
+    kpis = KPISemanticAgent().run(cleaned)
+    analysis = BIAnalystAgent().run(kpis)
+    dashboard = DashboardAgent(layout_path=str(tmp_path / "layout.json")).run(analysis, kpis)
+
+    result = AuditorXAIAgent().run(cleaned, kpis, analysis, dashboard)
+
+    assert isinstance(result, AuditReport)
+    assert result.validation_status in {"passed", "passed_with_warnings", "failed"}
+    assert "total_revenue" in result.explanations
+    assert len(result.traceability_log) == 4

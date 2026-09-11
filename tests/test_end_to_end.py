@@ -1,23 +1,25 @@
-"""End-to-end integration test running the full BIFlow pipeline on sample data.
-
-TODO (owner, Person E): once all agents are implemented, point this at
-data/sample/ and assert the pipeline produces a valid AuditReport with
-validation_status == "passed" (or similar).
-"""
-
-import pytest
+"""End-to-end integration test running the full BIFlow pipeline on sample data."""
 
 from orchestrator.orchestrator import BIFlowOrchestrator
-from shared.schemas.data_contracts import RawDatasetRef
+from shared.schemas.data_contracts import AuditReport, RawDatasetRef
 
 
-def test_full_pipeline_not_implemented():
-    """Stub test: the full pipeline should currently raise NotImplementedError."""
-    orchestrator = BIFlowOrchestrator()
+def test_full_pipeline_runs_end_to_end_on_sample_data(tmp_path):
+    orchestrator = BIFlowOrchestrator(
+        analytical_path=str(tmp_path / "analytical.csv"),
+        dashboard_layout_path=str(tmp_path / "dashboard_layout.json"),
+    )
     raw = RawDatasetRef(
         dataset_path="data/sample/olist",
         dataset_name="olist_ecommerce",
         business_domain="e-commerce",
     )
-    with pytest.raises(NotImplementedError):
-        orchestrator.run_pipeline(raw)
+
+    result = orchestrator.run_pipeline(raw)
+
+    assert isinstance(result, AuditReport)
+    # The sample data has known data-quality anomalies (missing review
+    # comments, duplicate geolocation rows), so "passed" isn't realistic here.
+    assert result.validation_status == "passed_with_warnings"
+    assert len(result.traceability_log) == 4
+    assert "total_revenue" in result.explanations

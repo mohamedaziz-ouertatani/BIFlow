@@ -71,11 +71,24 @@ dataset (`business_domain="e-commerce"`):
 - `data/sample/olist/` — small committed subset (500 orders + related rows)
   for local dev and tests — see [`data/sample/README.md`](data/sample/README.md)
 
+## Status
+
+All 5 agents and the Orchestrator are implemented and wired end-to-end
+against the Olist sample data — `BIFlowOrchestrator().run_pipeline(raw_dataset)`
+runs the full pipeline and returns a real `AuditReport`. Run
+`pytest` from the repo root (51 tests) or `streamlit run agents/dashboard_agent/app.py`
+after running the pipeline once to see the dashboard.
+
 ## Next steps
 
-1. Each owner fills in their agent's `README.md` and confirms/adjusts their
-   input/output schema in `shared/schemas/data_contracts.py` (open a PR if
-   changing a shared contract).
+1. ~~Scaffold the skeleton~~ — done.
 2. ~~Add a small sample dataset to `data/sample/`~~ — done, using Olist.
-3. Get `docker-compose up` running with all stub services before writing
-   real logic, so integration issues surface early.
+3. ~~Get `docker-compose up` running with all stub services~~ — done.
+4. ~~Implement all 5 agents + Orchestrator wiring~~ — done.
+5. Replace the BI Analyst Agent's threshold-only "trend detection" with real
+   time-series analysis once historical KPI data exists (see
+   `agents/bi_analyst_agent/README.md`).
+6. Load the Data Engineering Agent's analytical table into Postgres instead
+   of CSV-only (the `db` service in `docker-compose.yml` is currently unused).
+7. Thread `business_domain` through the shared contracts properly instead of
+   defaulting it on `KPISemanticAgent` (see that agent's README).

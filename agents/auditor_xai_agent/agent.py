@@ -16,14 +16,7 @@ from shared.schemas.data_contracts import (
 
 
 class AuditorXAIAgent:
-    """
-    Validates pipeline outputs and produces explanations + a traceability
-    log for the full BIFlow run.
-
-    TODO (owner): implement validation rules (e.g. data quality thresholds,
-    KPI sanity checks) and explanation generation (e.g. why an insight was
-    flagged, how a KPI was computed).
-    """
+    """Validates pipeline outputs and produces explanations + a traceability log."""
 
     def run(
         self,
@@ -32,10 +25,22 @@ class AuditorXAIAgent:
         analysis: AnalysisResult,
         dashboard: DashboardSpec,
     ) -> AuditReport:
-        """Validates the pipeline run and returns the final audit report.
+        """Validates the pipeline run and returns the final audit report."""
+        validation_status = validate_pipeline_outputs(cleaned, kpis, analysis)
+        explanations = generate_explanations(kpis, analysis)
 
-        TODO (owner): implement — call validate_pipeline_outputs, then
-        generate_explanations, and assemble the AuditReport using the
-        Orchestrator's execution trace.
-        """
-        raise NotImplementedError("TODO: implement Auditor/XAI Agent pipeline")
+        traceability_log = [
+            f"data_engineering: produced {cleaned.dataset_path} "
+            f"({cleaned.data_quality_report.n_rows} rows profiled, "
+            f"{len(cleaned.transformations_applied)} transformations applied)",
+            f"kpi_semantic: computed {len(kpis.kpis)} KPIs",
+            f"bi_analyst: generated {len(analysis.insights)} insights",
+            f"dashboard: published to {dashboard.dashboard_url} "
+            f"({len(dashboard.visualizations)} visualizations)",
+        ]
+
+        return AuditReport(
+            validation_status=validation_status,
+            explanations=explanations,
+            traceability_log=traceability_log,
+        )
