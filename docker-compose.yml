@@ -11,7 +11,9 @@ services:
       POSTGRES_PASSWORD: biflow
       POSTGRES_DB: biflow
     ports:
-      - "5432:5432"
+      # Host port 5433 (not 5432) to avoid clashing with a native Postgres
+      # install some dev machines already have listening on 5432.
+      - "5433:5432"
     volumes:
       - biflow_pgdata:/var/lib/postgresql/data
 

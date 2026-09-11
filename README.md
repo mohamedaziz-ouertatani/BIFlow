@@ -75,9 +75,17 @@ dataset (`business_domain="e-commerce"`):
 
 All 5 agents and the Orchestrator are implemented and wired end-to-end
 against the Olist sample data — `BIFlowOrchestrator().run_pipeline(raw_dataset)`
-runs the full pipeline and returns a real `AuditReport`. Run
-`pytest` from the repo root (51 tests) or `streamlit run agents/dashboard_agent/app.py`
-after running the pipeline once to see the dashboard.
+runs the full pipeline and returns a real `AuditReport`. Run `pytest` from
+the repo root, or `streamlit run agents/dashboard_agent/app.py` after
+running the pipeline once to see the dashboard. CI runs the full suite
+(including real-Postgres tests) on every push/PR to `main` — see
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml).
+
+Postgres loading is wired in but **opt-in**: pass `database_url` to
+`BIFlowOrchestrator`/`DataEngineeringAgent` to also load the analytical
+table into the `db` service's Postgres (see
+[`agents/data_engineering_agent/README.md`](agents/data_engineering_agent/README.md#postgres-loading-opt-in)
+for the host-vs-container connection details, including the port 5433 remap).
 
 ## Next steps
 
@@ -85,10 +93,11 @@ after running the pipeline once to see the dashboard.
 2. ~~Add a small sample dataset to `data/sample/`~~ — done, using Olist.
 3. ~~Get `docker-compose up` running with all stub services~~ — done.
 4. ~~Implement all 5 agents + Orchestrator wiring~~ — done.
-5. Replace the BI Analyst Agent's threshold-only "trend detection" with real
+5. ~~Load the Data Engineering Agent's analytical table into Postgres~~ — done, opt-in.
+6. Replace the BI Analyst Agent's threshold-only "trend detection" with real
    time-series analysis once historical KPI data exists (see
    `agents/bi_analyst_agent/README.md`).
-6. Load the Data Engineering Agent's analytical table into Postgres instead
-   of CSV-only (the `db` service in `docker-compose.yml` is currently unused).
 7. Thread `business_domain` through the shared contracts properly instead of
    defaulting it on `KPISemanticAgent` (see that agent's README).
+8. Make Postgres loading the actual default for real (non-test) pipeline
+   runs, e.g. via a CLI entrypoint that passes `get_settings().database_url`.

@@ -13,10 +13,18 @@ DEFAULT_OUTPUT_PATH = "data/processed/olist_orders_analytical.csv"
 
 
 class DataEngineeringAgent:
-    """Profiles, cleans, and transforms raw datasets for downstream agents."""
+    """Profiles, cleans, and transforms raw datasets for downstream agents.
 
-    def __init__(self, output_path: str = DEFAULT_OUTPUT_PATH) -> None:
+    Postgres loading is opt-in: pass `database_url` to also load the
+    analytical table into Postgres (in addition to the CSV, which remains
+    the interchange format between agents). Leaving it as None (the
+    default) keeps this CSV-only, so callers/tests that don't need Postgres
+    aren't coupled to a live database.
+    """
+
+    def __init__(self, output_path: str = DEFAULT_OUTPUT_PATH, database_url: str | None = None) -> None:
         self.output_path = output_path
+        self.database_url = database_url
 
     def run(self, raw_dataset: RawDatasetRef) -> CleanedDataset:
         """Runs profiling, cleaning, and ETL on the given raw dataset."""
@@ -24,7 +32,9 @@ class DataEngineeringAgent:
 
         tables = load_all_tables(raw_dataset.dataset_path)
         cleaned_tables, clean_transformations = clean_tables(tables)
-        output_path, etl_transformations = run_etl(cleaned_tables, self.output_path)
+        output_path, etl_transformations = run_etl(
+            cleaned_tables, self.output_path, database_url=self.database_url
+        )
 
         return CleanedDataset(
             dataset_path=output_path,

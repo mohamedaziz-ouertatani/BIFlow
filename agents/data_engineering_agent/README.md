@@ -30,10 +30,26 @@ directory containing the Olist CSVs (e.g. `data/sample/olist` or
    `order_items` + `orders` + `customers` + aggregated `order_payments`
    (summed per order) + aggregated `order_reviews` (latest score per order)
    + `products` (with English category name) + `sellers` — and writes the
-   result to CSV.
+   result to CSV. Optionally also loads it into Postgres (see below).
 
 Geolocation is profiled but not joined in (it's a zip-code lookup table,
 not order-linked at a useful grain).
+
+## Postgres loading (opt-in)
+
+`DataEngineeringAgent(database_url=...)` also loads the analytical table
+into a Postgres table (`orders_analytical`, replacing it each run) via
+`etl.load_to_postgres()`. This is **opt-in** — `database_url` defaults to
+`None`, so `DataEngineeringAgent()` stays CSV-only unless a caller
+explicitly passes one (e.g. `get_settings().database_url` from
+`shared/config.py`). CSV remains the interchange format between agents;
+Postgres is an additional sink for ad-hoc SQL access.
+
+The `db` service in `docker-compose.yml` maps to host port **5433** (not
+5432) to avoid clashing with a native Postgres install some dev machines
+already have. From the host, connect with
+`postgresql://biflow:biflow@localhost:5433/biflow`; from inside another
+docker-compose container, use `postgresql://biflow:biflow@db:5432/biflow`.
 
 ## Key files
 - `agent.py` — main agent entrypoint (`DataEngineeringAgent`), called by the Orchestrator
@@ -51,7 +67,6 @@ pytest tests/
 ## TODO
 - [x] Implement core logic (profiling, cleaning, ETL join against Olist sample)
 - [x] Write unit tests against sample data in `data/sample/`
-- [ ] Load the analytical table into Postgres (currently CSV-only; see
-  `docker-compose.yml`'s `db` service)
+- [x] Load the analytical table into Postgres (opt-in, see above)
 - [ ] Revisit cleaning rules once run against the full dataset in `data/raw/olist`
   (the sample may not surface every data-quality issue)

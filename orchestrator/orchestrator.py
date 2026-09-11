@@ -32,9 +32,11 @@ class BIFlowOrchestrator:
         self,
         analytical_path: str = DEFAULT_OUTPUT_PATH,
         dashboard_layout_path: str = DEFAULT_LAYOUT_PATH,
+        database_url: str | None = None,
     ) -> None:
         self.analytical_path = analytical_path
         self.dashboard_layout_path = dashboard_layout_path
+        self.database_url = database_url
 
     def run_pipeline(self, raw_dataset: RawDatasetRef) -> AuditReport:
         """Runs the full pipeline end-to-end and returns the final audit report."""
@@ -45,7 +47,9 @@ class BIFlowOrchestrator:
         return self._run_auditor(cleaned, kpis, analysis, dashboard)
 
     def _run_data_engineering(self, raw_dataset: RawDatasetRef) -> CleanedDataset:
-        return DataEngineeringAgent(output_path=self.analytical_path).run(raw_dataset)
+        return DataEngineeringAgent(
+            output_path=self.analytical_path, database_url=self.database_url
+        ).run(raw_dataset)
 
     def _run_kpi_semantic(self, cleaned: CleanedDataset, raw_dataset: RawDatasetRef) -> KPICatalog:
         return KPISemanticAgent(business_domain=raw_dataset.business_domain).run(cleaned)

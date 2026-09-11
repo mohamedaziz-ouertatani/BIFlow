@@ -1,27 +1,27 @@
-"""Shared configuration loading for all BIFlow services.
+"""Shared configuration loading for all BIFlow services."""
 
-TODO (owner): load settings from environment variables / .env (see
-.env.example) using pydantic-settings or similar, and expose a single
-`get_settings()` accessor used by the orchestrator, agents, and dashboard.
-"""
+import os
 
 from pydantic import BaseModel
 
+DEFAULT_DATABASE_URL = "postgresql://biflow:biflow@localhost:5433/biflow"
+
 
 class Settings(BaseModel):
-    """Application-wide settings shared across agents.
+    """Application-wide settings shared across agents."""
 
-    TODO: confirm fields — e.g. database_url, log_level, llm_provider,
-    llm_model, data_dir.
-    """
-
-    database_url: str = ""
+    database_url: str = DEFAULT_DATABASE_URL
     log_level: str = "INFO"
 
 
 def get_settings() -> Settings:
-    """Load and return the shared Settings instance.
+    """Load and return the shared Settings instance from environment variables.
 
-    TODO (owner): implement loading from environment/.env.
+    Defaults `database_url` to the host-side connection string (the docker
+    .env overrides it to use the `db` service hostname when running inside
+    containers).
     """
-    raise NotImplementedError("TODO: implement settings loading")
+    return Settings(
+        database_url=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
+        log_level=os.environ.get("LOG_LEVEL", "INFO"),
+    )
