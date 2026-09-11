@@ -1,5 +1,3 @@
-version: "3.9"
-
 # TODO (owner, Person E): flesh out build contexts/Dockerfiles per service
 # once each agent has real dependencies. This stub wires up the topology
 # (one service per agent + orchestrator + dashboard + db) so integration
@@ -18,7 +16,9 @@ services:
       - biflow_pgdata:/var/lib/postgresql/data
 
   orchestrator:
-    build: ./orchestrator
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
     depends_on:
       - db
       - data_engineering_agent
@@ -31,25 +31,33 @@ services:
       - .:/app
 
   data_engineering_agent:
-    build: ./agents/data_engineering_agent
+    build:
+      context: .
+      dockerfile: agents/data_engineering_agent/Dockerfile
     env_file: .env
     volumes:
       - .:/app
 
   kpi_semantic_agent:
-    build: ./agents/kpi_semantic_agent
+    build:
+      context: .
+      dockerfile: agents/kpi_semantic_agent/Dockerfile
     env_file: .env
     volumes:
       - .:/app
 
   bi_analyst_agent:
-    build: ./agents/bi_analyst_agent
+    build:
+      context: .
+      dockerfile: agents/bi_analyst_agent/Dockerfile
     env_file: .env
     volumes:
       - .:/app
 
   dashboard_agent:
-    build: ./agents/dashboard_agent
+    build:
+      context: .
+      dockerfile: agents/dashboard_agent/Dockerfile
     env_file: .env
     ports:
       - "8501:8501"
@@ -57,7 +65,9 @@ services:
       - .:/app
 
   auditor_xai_agent:
-    build: ./agents/auditor_xai_agent
+    build:
+      context: .
+      dockerfile: agents/auditor_xai_agent/Dockerfile
     env_file: .env
     volumes:
       - .:/app
