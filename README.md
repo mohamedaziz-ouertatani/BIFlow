@@ -55,10 +55,54 @@ See [`docs/architecture.md`](docs/architecture.md) for more detail.
 
 ## Getting started
 
+### Option A: docker-compose (everything containerized)
+
+```bash
+docker-compose up -d
+```
+
+Run the pipeline once to generate data:
+
+```bash
+docker compose exec orchestrator python -m orchestrator data/sample/olist e-commerce
+```
+
+Open the dashboard: **http://localhost:3000**
+
+### Option B: manual (no Docker)
+
 ```bash
 pip install -r requirements-dev.txt
-docker-compose up
+for req in agents/*/requirements.txt orchestrator/requirements.txt; do pip install -r "$req"; done
 ```
+
+Run the pipeline:
+
+```bash
+python -m orchestrator data/sample/olist e-commerce --no-postgres
+```
+
+Then, in two separate terminals, start the API and the frontend:
+
+```bash
+uvicorn agents.dashboard_agent.api:create_app --factory
+```
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Open **http://localhost:3000**.
+
+### Other useful commands
+
+- `python -m orchestrator data/raw/olist e-commerce` — run against the full
+  dataset instead of the 500-order sample (needs `data/raw/olist/`
+  populated with the raw CSVs — gitignored, not committed)
+- `pytest` — run the Python test suite
+- `cd frontend && npm test` — run the frontend test suite
+- Drop `--no-postgres` to also load results into Postgres
+  (`localhost:5433`, user/pass/db all `biflow`)
 
 Each agent also has its own `requirements.txt` and `tests/` — see that
 agent's `README.md` for local dev instructions.
@@ -76,20 +120,11 @@ dataset (`business_domain="e-commerce"`):
 
 All 5 agents and the Orchestrator are implemented and wired end-to-end
 against the Olist sample data (and verified against the full ~99k-order
-dataset too). Run the whole pipeline for real with:
-
-```bash
-python -m orchestrator data/sample/olist e-commerce
-```
-
-— or `BIFlowOrchestrator().run_pipeline(raw_dataset)` from Python. Then, to
-see the dashboard: run the API (`uvicorn agents.dashboard_agent.api:create_app --factory`)
-and the frontend (`npm run dev` in `frontend/`, or both via
-`docker-compose up dashboard_agent frontend`) and open `http://localhost:3000`
-— it polls the API every 5s. Run `pytest` from the repo root for the Python
-suite. CI runs both the Python suite (including real-Postgres tests) and a
-frontend lint+build check on every push/PR to `main` — see
-[`.github/workflows/tests.yml`](.github/workflows/tests.yml).
+dataset too) — see "Getting started" above to run it. `BIFlowOrchestrator().run_pipeline(raw_dataset)`
+is the underlying Python entrypoint if you'd rather call it directly than
+via the CLI. CI runs both the Python suite (including real-Postgres tests)
+and the frontend suite (lint, Jest, build) on every push/PR to `main` —
+see [`.github/workflows/tests.yml`](.github/workflows/tests.yml).
 
 Postgres loading is wired in and **on by default for the CLI** (opt-out
 with `--no-postgres`); it stays **opt-in** at the library level
