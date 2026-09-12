@@ -25,7 +25,31 @@ def test_compute_monthly_trends_detects_increasing_revenue():
         "latest_value": 150.0,
         "pct_change": 50.0,
         "direction": "increasing",
+        "series": [
+            {"month": "2018-01", "value": 100.0},
+            {"month": "2018-02", "value": 150.0},
+        ],
     }
+
+
+def test_compute_monthly_trends_includes_full_series_for_charting():
+    df = pd.DataFrame(
+        {
+            "order_id": ["o1", "o2", "o3"],
+            "order_purchase_timestamp": pd.to_datetime(
+                ["2018-01-05", "2018-02-05", "2018-03-05"]
+            ),
+            "order_status": ["delivered", "delivered", "delivered"],
+            "price": [50.0, 100.0, 150.0],
+            "review_score": [5, 4, 3],
+        }
+    )
+    trends = compute_monthly_trends(df)
+    assert trends["total_revenue"]["series"] == [
+        {"month": "2018-01", "value": 50.0},
+        {"month": "2018-02", "value": 100.0},
+        {"month": "2018-03", "value": 150.0},
+    ]
 
 
 def test_compute_monthly_trends_detects_decreasing_review_score():

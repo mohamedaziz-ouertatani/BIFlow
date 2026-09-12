@@ -25,7 +25,13 @@ def build_layout(analysis: AnalysisResult, kpis: KPICatalog) -> dict[str, Any]:
         for insight in analysis.insights
     ]
 
+    monthly_trends = {
+        metric: trend["series"]
+        for metric, trend in analysis.trends.get("monthly", {}).items()
+    }
+
     return {
         "kpi_cards": kpi_cards,
         "insights": insights,
+        "monthly_trends": monthly_trends,
     }

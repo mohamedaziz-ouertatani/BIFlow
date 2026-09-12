@@ -124,7 +124,9 @@ for the host-vs-container connection details, including the port 5433 remap.
 10. ~~Swap the dashboard for a Next.js frontend~~ — done: the Streamlit UI
     is gone, replaced by `frontend/` (Next.js, polls every 5s) backed by a
     small FastAPI JSON API in `agents/dashboard_agent/api.py`.
-11. Add a trend chart to the frontend using `AnalysisResult.trends["monthly"]`
-    (computed by `BIAnalystAgent` but not yet surfaced visually).
-12. Add automated frontend tests (Jest/Playwright) — currently verified via
-    the backend's `pytest` suite plus manual browser checks.
+11. ~~Add a trend chart to the frontend~~ — done: `frontend/TrendChart.tsx`
+    (Recharts) renders each `AnalysisResult.trends["monthly"]` metric as a
+    line chart; `monthly_trends.py` now retains the full per-month series
+    (not just the previous/latest comparison) for this.
+12. ~~Add automated frontend tests~~ — done: Jest + React Testing Library
+    (`frontend/src/app/*.test.tsx`), run in CI alongside lint/build.

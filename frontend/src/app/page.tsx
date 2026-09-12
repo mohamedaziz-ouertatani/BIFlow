@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styles from "./page.module.css";
+import TrendChart from "./TrendChart";
 import type { DashboardLayout } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -81,6 +82,17 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+
+          {Object.keys(state.data.monthly_trends).length > 0 && (
+            <section>
+              <h2 className={styles.subheading}>Trends</h2>
+              <div className={styles.chartGrid}>
+                {Object.entries(state.data.monthly_trends).map(([metric, series]) => (
+                  <TrendChart key={metric} metric={metric} series={series} />
+                ))}
+              </div>
+            </section>
+          )}
 
           {state.data.insights.length > 0 && (
             <section>

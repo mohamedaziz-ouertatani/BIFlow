@@ -43,6 +43,24 @@
   font-weight: 600;
 }
 
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.chartCard {
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  border-radius: 8px;
+  padding: 0.75rem 1rem 0.5rem;
+}
+
+.chartLabel {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
+}
+
 .insightList {
   list-style: none;
   padding: 0;

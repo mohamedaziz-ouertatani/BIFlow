@@ -34,6 +34,9 @@ def _trend_entry(series: pd.Series) -> dict[str, Any] | None:
         "latest_value": latest_value,
         "pct_change": round(pct_change, 2),
         "direction": _direction(latest_value, previous_value),
+        "series": [
+            {"month": month, "value": float(value)} for month, value in series.items()
+        ],
     }
 
 

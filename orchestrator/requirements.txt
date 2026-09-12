@@ -1,5 +1,4 @@
 pydantic>=2.0
 pandas==2.3.3
-streamlit
 sqlalchemy
 psycopg2-binary

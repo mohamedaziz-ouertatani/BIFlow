@@ -16,8 +16,10 @@ the Auditor/XAI agent.
 
 ## How it works
 1. **`layout_builder.build_layout(analysis, kpis)`** — builds a JSON-serializable
-   layout: one `kpi_cards` entry per KPI (name, label, value) and one
-   `insights` entry per `Insight` (title, description, severity).
+   layout: one `kpi_cards` entry per KPI (name, label, value), one
+   `insights` entry per `Insight` (title, description, severity), and a
+   `monthly_trends` dict (metric name → list of `{month, value}` points)
+   pulled from `analysis.trends["monthly"]` for the frontend's charts.
 2. **`DashboardAgent.run(analysis, kpis)`** — builds the layout, writes it to
    `data/processed/dashboard_layout.json` (configurable via
    `layout_path`), and returns a `DashboardSpec`.
@@ -50,6 +52,5 @@ uvicorn agents.dashboard_agent.api:create_app --factory --reload
 - [x] Write unit tests against sample data in `data/sample/`
 - [x] Swap in real `AnalysisResult` insights (BI Analyst Agent now exists)
 - [x] Replace the Streamlit UI with a Next.js frontend + FastAPI backend
-- [ ] Add a chart (e.g. revenue or review-score trend) — `BIAnalystAgent`
-  already computes real monthly trends (`AnalysisResult.trends["monthly"]`),
-  but the layout/frontend only show current KPI values and text insights
+- [x] Add a chart (revenue, order volume, review score trends) — see
+  `frontend/TrendChart.tsx`
