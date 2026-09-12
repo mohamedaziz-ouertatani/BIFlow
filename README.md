@@ -3,6 +3,10 @@
 BIFlow is a multi-agent system that automates a Business Intelligence
 pipeline from raw data to an explainable, interactive dashboard.
 
+For a detailed explanation of every component, design decision, and the
+real bugs found and fixed along the way, see
+[`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md).
+
 ## Architecture
 
 ```
