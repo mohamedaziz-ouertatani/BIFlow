@@ -32,7 +32,7 @@ class BIAnalystAgent:
         threshold_insights = generate_insights(kpis, threshold_trends)
 
         analytical_df = pd.read_csv(cleaned.dataset_path)
-        monthly_trends = compute_monthly_trends(analytical_df)
+        monthly_trends = compute_monthly_trends(analytical_df, cleaned.business_domain)
         monthly_insights = generate_monthly_trend_insights(monthly_trends)
 
         trends = {**threshold_trends, "monthly": monthly_trends}

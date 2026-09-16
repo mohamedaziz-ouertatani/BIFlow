@@ -43,3 +43,27 @@ def test_agent_run_produces_analysis_result_from_real_kpi_catalog(tmp_path):
     threshold_insight_kpis = {"on_time_delivery_rate", "average_review_score"}
     monthly_insight_kpis = set(result.trends["monthly"].keys())
     assert {i.related_kpi for i in result.insights} == threshold_insight_kpis | monthly_insight_kpis
+
+
+BANKING_SAMPLE_DIR = "data/sample/banking"
+
+
+def test_agent_run_produces_analysis_result_from_real_banking_kpi_catalog(tmp_path):
+    analytical_path = str(tmp_path / "banking_analytical.csv")
+    raw = RawDatasetRef(
+        dataset_path=BANKING_SAMPLE_DIR, dataset_name="berka_banking", business_domain="banking"
+    )
+    cleaned = DataEngineeringAgent(output_path=analytical_path).run(raw)
+    kpis = KPISemanticAgent().run(cleaned)
+
+    result = BIAnalystAgent().run(cleaned, kpis)
+
+    assert isinstance(result, AnalysisResult)
+    assert result.trends["loan_good_standing_rate"] == {
+        "value": kpis.computed_values["loan_good_standing_rate"],
+        "threshold": 0.85,
+        "status": "healthy"
+        if kpis.computed_values["loan_good_standing_rate"] >= 0.85
+        else "concerning",
+    }
+    assert "monthly" in result.trends
