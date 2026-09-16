@@ -27,9 +27,5 @@ class ExecutionTrace(BaseModel):
     events: list[TraceEvent]
 
     def add_event(self, event: TraceEvent) -> None:
-        """Append an event to the trace.
-
-        TODO (owner): implement append + persistence (e.g. write-through to a
-        log store) once the Orchestrator's logging strategy is decided.
-        """
-        raise NotImplementedError("TODO: implement trace event logging")
+        """Append an event to the trace (in-memory for the run's duration)."""
+        self.events.append(event)

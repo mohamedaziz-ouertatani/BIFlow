@@ -1,9 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import KpiDetail from "./KpiDetail";
 import styles from "./page.module.css";
 import TrendChart from "./TrendChart";
-import type { DashboardLayout } from "./types";
+import type { DashboardLayout, MonthlyComparison } from "./types";
+
+const DIRECTION_ARROW: Record<string, string> = {
+  increasing: "▲",
+  decreasing: "▼",
+  flat: "–",
+};
+
+function ComparisonBadge({ comparison }: { comparison: MonthlyComparison }) {
+  const arrow = DIRECTION_ARROW[comparison.direction] ?? "–";
+  return (
+    <div
+      className={`${styles.comparisonBadge} ${
+        styles[`comparison-${comparison.direction}`] ?? ""
+      }`}
+    >
+      {arrow} {Math.abs(comparison.pct_change).toFixed(1)}% vs {comparison.previous_month}
+    </div>
+  );
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const POLL_INTERVAL_MS = 5000;
@@ -40,6 +60,7 @@ function formatValue(value: number | string | null): string {
 export default function DashboardPage() {
   const [state, setState] = useState<FetchState>({ status: "loading" });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [selectedKpiName, setSelectedKpiName] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,12 +97,36 @@ export default function DashboardPage() {
         <>
           <div className={styles.kpiGrid}>
             {state.data.kpi_cards.map((card) => (
-              <div key={card.name} className={styles.kpiCard}>
+              <button
+                key={card.name}
+                type="button"
+                className={styles.kpiCard}
+                onClick={() =>
+                  setSelectedKpiName((current) => (current === card.name ? null : card.name))
+                }
+              >
                 <div className={styles.kpiLabel}>{card.label}</div>
                 <div className={styles.kpiValue}>{formatValue(card.value)}</div>
-              </div>
+                {card.comparison && <ComparisonBadge comparison={card.comparison} />}
+              </button>
             ))}
           </div>
+
+          {selectedKpiName &&
+            (() => {
+              const selectedCard = state.data.kpi_cards.find((c) => c.name === selectedKpiName);
+              if (!selectedCard) return null;
+              return (
+                <KpiDetail
+                  card={selectedCard}
+                  trendSeries={state.data.monthly_trends[selectedKpiName]}
+                  insights={state.data.insights.filter(
+                    (insight) => insight.related_kpi === selectedKpiName
+                  )}
+                  onClose={() => setSelectedKpiName(null)}
+                />
+              );
+            })()}
 
           {Object.keys(state.data.monthly_trends).length > 0 && (
             <section>

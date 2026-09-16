@@ -2,30 +2,34 @@
 
 from shared.schemas.data_contracts import KPIDefinition
 
+# Dimensions every e-commerce KPI can be broken down by (see kpi_computation.py
+# DIMENSION_COLUMNS for the analytical-table column each maps to).
+_BREAKDOWN_DIMENSIONS = ["category", "state"]
+
 _ECOMMERCE_KPIS = [
     KPIDefinition(
         name="total_revenue",
         formula="sum(price) where order_status != 'canceled'",
         description="Total revenue from non-canceled order items.",
-        dimensions=[],
+        dimensions=_BREAKDOWN_DIMENSIONS,
     ),
     KPIDefinition(
         name="average_order_value",
         formula="total_revenue / count(distinct order_id where order_status != 'canceled')",
         description="Average amount spent per non-canceled order.",
-        dimensions=[],
+        dimensions=_BREAKDOWN_DIMENSIONS,
     ),
     KPIDefinition(
         name="order_count",
         formula="count(distinct order_id)",
         description="Total number of distinct orders, across all statuses.",
-        dimensions=[],
+        dimensions=_BREAKDOWN_DIMENSIONS,
     ),
     KPIDefinition(
         name="average_review_score",
         formula="mean(review_score)",
         description="Average customer review score (1-5) across orders with a review.",
-        dimensions=[],
+        dimensions=_BREAKDOWN_DIMENSIONS,
     ),
     KPIDefinition(
         name="on_time_delivery_rate",
@@ -34,7 +38,7 @@ _ECOMMERCE_KPIS = [
             "/ count(order_delivered_customer_date is not null)"
         ),
         description="Share of delivered orders that arrived on or before the estimated date.",
-        dimensions=[],
+        dimensions=_BREAKDOWN_DIMENSIONS,
     ),
 ]
 

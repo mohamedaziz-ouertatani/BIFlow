@@ -40,4 +40,4 @@ pytest tests/
 ## TODO
 - [x] Implement core logic
 - [x] Write unit tests against sample data in `data/sample/`
-- [ ] Fill in `docs/xai_report_template.md` with a real rendered example
+- [x] Fill in `docs/xai_report_template.md` with a real rendered example

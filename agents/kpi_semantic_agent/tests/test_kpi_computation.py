@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from agents.kpi_semantic_agent.kpi_computation import compute_kpis
+from agents.kpi_semantic_agent.kpi_computation import compute_kpi_breakdowns, compute_kpis
 
 
 def test_compute_kpis_total_revenue_excludes_canceled_orders():
@@ -83,6 +83,44 @@ def test_compute_kpis_on_time_delivery_rate_over_delivered_orders_only():
     computed = compute_kpis(df, "e-commerce")
     # only o1 and o2 were delivered; o1 on time, o2 late -> 1/2 = 0.5
     assert computed["on_time_delivery_rate"] == 0.5
+
+
+def test_compute_kpi_breakdowns_groups_by_dimension_column():
+    df = pd.DataFrame(
+        {
+            "order_id": ["o1", "o2", "o3"],
+            "order_status": ["delivered", "delivered", "delivered"],
+            "price": [100.0, 50.0, 20.0],
+            "review_score": [5, 4, 3],
+            "customer_state": ["SP", "SP", "RJ"],
+            "order_delivered_customer_date": [None, None, None],
+            "order_estimated_delivery_date": [None, None, None],
+        }
+    )
+    breakdowns = compute_kpi_breakdowns(df, "customer_state", "e-commerce")
+
+    assert set(breakdowns) == {"SP", "RJ"}
+    assert breakdowns["SP"]["total_revenue"] == 150.0
+    assert breakdowns["SP"]["order_count"] == 2
+    assert breakdowns["RJ"]["total_revenue"] == 20.0
+    assert breakdowns["RJ"]["order_count"] == 1
+
+
+def test_compute_kpi_breakdowns_drops_rows_with_missing_dimension_value():
+    df = pd.DataFrame(
+        {
+            "order_id": ["o1", "o2"],
+            "order_status": ["delivered", "delivered"],
+            "price": [100.0, 50.0],
+            "review_score": [5, 4],
+            "customer_state": ["SP", None],
+            "order_delivered_customer_date": [None, None],
+            "order_estimated_delivery_date": [None, None],
+        }
+    )
+    breakdowns = compute_kpi_breakdowns(df, "customer_state", "e-commerce")
+
+    assert set(breakdowns) == {"SP"}
 
 
 def _banking_df(**overrides):

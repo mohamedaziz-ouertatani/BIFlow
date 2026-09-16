@@ -66,15 +66,15 @@ def clean_tables(
         if dropped:
             transformations.append(f"{name}: dropped {dropped} exact duplicate rows")
 
-        if business_domain == "e-commerce":
-            date_cols = [
-                c for c in df.columns if "timestamp" in c or c.endswith(("_date", "_at"))
-            ]
-            for col in date_cols:
-                df[col] = pd.to_datetime(df[col])
-            if date_cols:
-                transformations.append(f"{name}: parsed {date_cols} as datetime")
+        date_cols = [
+            c for c in df.columns if "timestamp" in c or c.endswith(("_date", "_at"))
+        ]
+        for col in date_cols:
+            df[col] = pd.to_datetime(df[col])
+        if date_cols:
+            transformations.append(f"{name}: parsed {date_cols} as datetime")
 
+        if business_domain == "e-commerce":
             df = _apply_ecommerce_rules(name, df, transformations)
 
         elif business_domain == "banking":

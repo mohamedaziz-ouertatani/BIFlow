@@ -15,6 +15,7 @@ def test_get_kpi_definitions_returns_five_ecommerce_kpis():
         "average_review_score",
         "on_time_delivery_rate",
     }
+    assert all(d.dimensions == ["category", "state"] for d in definitions)
 
 
 def test_get_kpi_definitions_returns_five_banking_kpis():

@@ -56,6 +56,10 @@ class KPICatalog(BaseModel):
 
     kpis: list[KPIDefinition]
     computed_values: dict[str, Any]
+    # dimension name (e.g. "category", "state") -> group value -> {kpi_name: value},
+    # for KPIs whose KPIDefinition.dimensions lists that dimension. Empty for KPIs
+    # or business domains that don't define any breakdown dimensions.
+    breakdowns: dict[str, dict[str, dict[str, Any]]] = {}
 
 
 class Insight(BaseModel):

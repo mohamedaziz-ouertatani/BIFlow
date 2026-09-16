@@ -68,7 +68,22 @@ pytest tests/
 - [x] Implement core logic (profiling, cleaning, ETL join against Olist sample)
 - [x] Write unit tests against sample data in `data/sample/`
 - [x] Load the analytical table into Postgres (opt-in, see above)
-- [ ] Revisit cleaning rules once run against the full dataset in `data/raw/olist`
-  (the sample may not surface every data-quality issue)
+- [x] Revisit cleaning rules once run against the full dataset in `data/raw/olist`
+  (the sample may not surface every data-quality issue). Ran the full
+  pipeline against `data/raw/olist` (1.55M rows across 8 tables) and found:
+  - `orders.order_approved_at` was never parsed to `datetime` — the
+    `date_cols` heuristic in `cleaner.py` only matched `"timestamp"` and
+    `*_date` columns, missing this `*_at` column. Fixed by also matching
+    `*_at` suffixes (checked against every column across all 8 tables —
+    no false positives).
+  - `geolocation` has 261,831 exact duplicate rows (~26% of the table) —
+    already handled correctly by the existing generic `drop_duplicates()`
+    step; not joined into the analytical table anyway.
+  - `order_reviews.review_comment_title` (88.3%) and
+    `review_comment_message` (58.7%) are mostly missing, but neither is
+    used downstream (only `review_score` is joined), so no cleaning rule
+    was added for them.
+  - No null/negative prices in `order_items` on the full dataset (that
+    rule exists for defense-in-depth but doesn't currently trigger).
 - [x] Support a second business domain (`banking`, Berka dataset) — see
   `docs/superpowers/specs/2026-09-16-multi-domain-banking-design.md`

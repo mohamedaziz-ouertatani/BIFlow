@@ -59,7 +59,8 @@ else `0`.
 ## Key files
 - `orchestrator.py` — main orchestrator class, one method per pipeline stage
 - `__main__.py` — CLI entrypoint (`python -m orchestrator`)
-- `execution_log.py` — execution trace/logging (not yet wired in — see TODO)
+- `execution_log.py` — in-memory execution trace/logging, wired into
+  `run_pipeline`'s stage transitions
 
 ## Local dev
 ```bash
@@ -71,7 +72,10 @@ pytest tests/
 - [x] Wire real agent calls into each `_run_*` method
 - [x] Write an end-to-end test against sample data in `data/sample/`
 - [x] Add a CLI entrypoint for real (non-test) pipeline runs
-- [ ] Implement error handling (retry/skip/halt) between stages
-- [ ] Wire `execution_log.py` for step-by-step tracing (currently the
-  Auditor/XAI agent synthesizes its `traceability_log` from each stage's
-  own output instead)
+- [x] Implement error handling (retry/skip/halt) between stages — halts on
+  any stage failure, wrapping it in `PipelineStageError` (see `orchestrator.py`)
+- [x] Wire `execution_log.py` for step-by-step tracing — each stage now logs
+  started/succeeded/failed to an in-memory `ExecutionTrace`, exposed as
+  `BIFlowOrchestrator.execution_log` after a run (the Auditor/XAI agent's
+  `traceability_log` is unchanged, still synthesized from each stage's own
+  output)

@@ -5,6 +5,23 @@ from typing import Any
 import pandas as pd
 
 
+def compute_kpi_breakdowns(
+    df: pd.DataFrame, dimension_column: str, business_domain: str
+) -> dict[str, dict[str, Any]]:
+    """Computes every KPI's value per distinct value of `dimension_column`.
+
+    Applies the same formulas as `compute_kpis` to each group's subset of
+    rows. Since the analytical table is at order-item grain, an order
+    spanning multiple categories is attributed to each — consistent with how
+    `total_revenue`/`order_count` are computed overall, but worth knowing
+    when reading a category breakdown.
+    """
+    return {
+        str(value): compute_kpis(group, business_domain)
+        for value, group in df.dropna(subset=[dimension_column]).groupby(dimension_column)
+    }
+
+
 def compute_kpis(df: pd.DataFrame, business_domain: str) -> dict[str, Any]:
     """Computes the KPI values for business_domain from the analytical table."""
     if business_domain == "e-commerce":

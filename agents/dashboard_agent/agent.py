@@ -8,7 +8,7 @@ import json
 import os
 
 from agents.dashboard_agent.layout_builder import build_layout
-from shared.schemas.data_contracts import AnalysisResult, DashboardSpec, KPICatalog
+from shared.schemas.data_contracts import AnalysisResult, AuditReport, DashboardSpec, KPICatalog
 
 DEFAULT_LAYOUT_PATH = "data/processed/dashboard_layout.json"
 DEFAULT_DASHBOARD_URL = "http://localhost:3000"
@@ -36,3 +36,19 @@ class DashboardAgent:
             visualizations=["kpi_cards", "insights_panel"],
             kpis_shown=[kpi.name for kpi in kpis.kpis],
         )
+
+    def attach_audit_report(self, audit: AuditReport) -> None:
+        """Enriches the already-written layout with the Auditor's per-KPI explanations.
+
+        Runs after run(), once the Auditor/XAI agent has produced its report, so the
+        dashboard can show *why* a KPI has the value it does without the Dashboard
+        Agent needing to depend on the Auditor's output up front.
+        """
+        with open(self.layout_path) as f:
+            layout = json.load(f)
+
+        for card in layout["kpi_cards"]:
+            card["explanation"] = audit.explanations.get(card["name"])
+
+        with open(self.layout_path, "w") as f:
+            json.dump(layout, f, indent=2)

@@ -30,6 +30,16 @@
   border: 1px solid rgba(127, 127, 127, 0.25);
   border-radius: 8px;
   padding: 1rem;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.kpiCard:hover {
+  border-color: rgba(47, 128, 237, 0.6);
 }
 
 .kpiLabel {
@@ -41,6 +51,24 @@
 .kpiValue {
   font-size: 1.75rem;
   font-weight: 600;
+}
+
+.comparisonBadge {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.comparison-increasing {
+  color: #219653;
+}
+
+.comparison-decreasing {
+  color: #c0392b;
+}
+
+.comparison-flat {
+  opacity: 0.6;
 }
 
 .chartGrid {
@@ -86,6 +114,49 @@
 
 .severity-critical {
   border-left-color: #c0392b;
+}
+
+.detailPanel {
+  margin-top: 1.5rem;
+  border: 1px solid rgba(47, 128, 237, 0.4);
+  border-radius: 8px;
+  padding: 1rem 1.25rem 1.25rem;
+  background: rgba(47, 128, 237, 0.05);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detailHeader .subheading {
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.closeButton:hover {
+  opacity: 1;
+}
+
+.explanation {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin: 0.5rem 0 1rem;
+}
+
+.noTrend {
+  font-size: 0.85rem;
+  opacity: 0.6;
 }
 
 .lastUpdated {

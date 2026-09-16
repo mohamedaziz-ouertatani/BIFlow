@@ -10,7 +10,7 @@ Example:
 import argparse
 import sys
 
-from orchestrator.orchestrator import BIFlowOrchestrator
+from orchestrator.orchestrator import BIFlowOrchestrator, PipelineStageError
 from shared.config import get_settings
 from shared.schemas.data_contracts import AuditReport, RawDatasetRef
 
@@ -64,7 +64,12 @@ def main(argv: list[str] | None = None) -> int:
         business_domain=args.business_domain,
     )
 
-    report = orchestrator.run_pipeline(raw_dataset)
+    try:
+        report = orchestrator.run_pipeline(raw_dataset)
+    except PipelineStageError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
     print_report(report)
 
     return 1 if report.validation_status == "failed" else 0

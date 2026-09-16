@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import DashboardPage from "./page";
 import type { DashboardLayout } from "./types";
 
@@ -21,7 +21,12 @@ describe("DashboardPage", () => {
         { name: "total_revenue", label: "Total revenue", value: 123.45 },
       ],
       insights: [
-        { title: "Revenue up", description: "Grew 10%", severity: "info" },
+        {
+          title: "Revenue up",
+          description: "Grew 10%",
+          related_kpi: "total_revenue",
+          severity: "info",
+        },
       ],
       monthly_trends: {
         total_revenue: [
@@ -37,6 +42,76 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("123.45")).toBeInTheDocument();
     expect(screen.getByText("Revenue up", { exact: false })).toBeInTheDocument();
     expect(screen.getByText("Revenue")).toBeInTheDocument(); // trend chart label
+  });
+
+  it("shows a KPI's explanation and related insights when its card is clicked", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [
+        {
+          name: "total_revenue",
+          label: "Total revenue",
+          value: 123.45,
+          explanation: "total_revenue = sum(price) = 123.45",
+        },
+      ],
+      insights: [
+        {
+          title: "Revenue up",
+          description: "Grew 10%",
+          related_kpi: "total_revenue",
+          severity: "info",
+        },
+        {
+          title: "Unrelated insight",
+          description: "About something else",
+          related_kpi: "order_count",
+          severity: "info",
+        },
+      ],
+      monthly_trends: {
+        total_revenue: [{ month: "2018-01", value: 100 }],
+      },
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    fireEvent.click(await screen.findByText("Total revenue"));
+
+    const detail = within(await screen.findByTestId("kpi-detail"));
+    expect(detail.getByText("total_revenue = sum(price) = 123.45")).toBeInTheDocument();
+    expect(detail.getByText("Revenue up", { exact: false })).toBeInTheDocument();
+    expect(detail.queryByText("Unrelated insight", { exact: false })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Close KPI details"));
+    expect(screen.queryByTestId("kpi-detail")).not.toBeInTheDocument();
+  });
+
+  it("shows a month-over-month comparison badge when the KPI has one", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [
+        {
+          name: "total_revenue",
+          label: "Total revenue",
+          value: 150,
+          comparison: {
+            previous_month: "2018-01",
+            latest_month: "2018-02",
+            previous_value: 100,
+            latest_value: 150,
+            pct_change: 50,
+            direction: "increasing",
+          },
+        },
+        { name: "order_count", label: "Order count", value: 10, comparison: null },
+      ],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+
+    expect(await screen.findByText("▲ 50.0% vs 2018-01")).toBeInTheDocument();
   });
 
   it("shows a no-data message when the API returns 404", async () => {

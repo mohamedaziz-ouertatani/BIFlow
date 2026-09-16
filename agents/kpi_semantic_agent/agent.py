@@ -6,7 +6,7 @@ Orchestrator with a CleanedDataset and returns a KPICatalog.
 
 import pandas as pd
 
-from agents.kpi_semantic_agent.kpi_computation import compute_kpis
+from agents.kpi_semantic_agent.kpi_computation import compute_kpi_breakdowns, compute_kpis
 from agents.kpi_semantic_agent.kpi_definitions import get_kpi_definitions
 from shared.schemas.data_contracts import CleanedDataset, KPICatalog
 
@@ -15,6 +15,16 @@ from shared.schemas.data_contracts import CleanedDataset, KPICatalog
 DATE_COLUMNS_BY_DOMAIN = {
     "e-commerce": ["order_delivered_customer_date", "order_estimated_delivery_date"],
     "banking": [],
+}
+
+# Breakdown dimension name (as used in KPIDefinition.dimensions) -> analytical
+# table column it's computed from, per business domain.
+DIMENSION_COLUMNS_BY_DOMAIN = {
+    "e-commerce": {
+        "category": "product_category_name_english",
+        "state": "customer_state",
+    },
+    "banking": {},
 }
 
 
@@ -30,4 +40,14 @@ class KPISemanticAgent:
         df = pd.read_csv(cleaned.dataset_path, parse_dates=date_columns)
         computed_values = compute_kpis(df, business_domain)
 
-        return KPICatalog(kpis=kpi_definitions, computed_values=computed_values)
+        dimensions_used = {d for kpi in kpi_definitions for d in kpi.dimensions}
+        dimension_columns = DIMENSION_COLUMNS_BY_DOMAIN[business_domain]
+        breakdowns = {
+            dimension: compute_kpi_breakdowns(df, column, business_domain)
+            for dimension, column in dimension_columns.items()
+            if dimension in dimensions_used
+        }
+
+        return KPICatalog(
+            kpis=kpi_definitions, computed_values=computed_values, breakdowns=breakdowns
+        )

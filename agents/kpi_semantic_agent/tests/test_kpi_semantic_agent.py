@@ -32,6 +32,11 @@ def test_agent_run_computes_kpi_catalog_from_cleaned_dataset(tmp_path):
     assert 0 < result.computed_values["order_count"] <= 500
     assert result.computed_values["total_revenue"] > 0
 
+    assert set(result.breakdowns) == {"category", "state"}
+    assert len(result.breakdowns["state"]) > 0
+    some_state = next(iter(result.breakdowns["state"].values()))
+    assert some_state["total_revenue"] > 0
+
 
 def test_agent_run_uses_business_domain_from_cleaned_dataset_not_a_constructor_default():
     """KPISemanticAgent must read business_domain off CleanedDataset -- there's

@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIFlow — Design Thinking: Empathize Phase</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================
+   CSS CUSTOM PROPERTIES — PAPER & INK
+   =========================================== */
+:root {
+    --bg-cream: #faf9f7;
+    --ink: #1a1a1a;
+    --ink-soft: #54504a;
+    --ink-faint: #8c887f;
+    --crimson: #c41e3a;
+    --rule: #d8d2c8;
+    --card-bg: #ffffff;
+    --card-border: #e6e0d5;
+
+    --font-display: 'Cormorant Garamond', serif;
+    --font-body: 'Source Serif 4', serif;
+
+    --slide-pad-x: 160px;
+    --slide-pad-y: 96px;
+
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-normal: 0.7s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ===========================================
+   FIXED 16:9 STAGE — MANDATORY BASE STYLES
+   =========================================== */
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, var(--bg-cream));
+}
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, var(--bg-cream));
+}
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+@media print {
+    html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+    .deck-viewport { position: static; overflow: visible; background: #fff; }
+    .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+    .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .deck-controls { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+}
+
+/* ===========================================
+   REVEAL ANIMATION SYSTEM
+   =========================================== */
+.reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity var(--duration-normal) var(--ease-out-expo),
+                transform var(--duration-normal) var(--ease-out-expo);
+}
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.slide.visible .reveal:nth-child(1) { transition-delay: 0.05s; }
+.slide.visible .reveal:nth-child(2) { transition-delay: 0.16s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: 0.27s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: 0.38s; }
+.slide.visible .reveal:nth-child(5) { transition-delay: 0.49s; }
+.slide.visible .reveal:nth-child(6) { transition-delay: 0.60s; }
+
+.rule-draw {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1s var(--ease-out-expo);
+    transition-delay: 0.15s;
+}
+.slide.visible .rule-draw { transform: scaleX(1); }
+
+/* ===========================================
+   SHARED SLIDE CHROME
+   =========================================== */
+.slide-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: var(--slide-pad-y) var(--slide-pad-x);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+}
+.chrome-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-body);
+    font-size: 17px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+.chrome-top .kicker { color: var(--crimson); font-weight: 600; }
+.chrome-top .kicker::before { content: "— "; color: var(--ink-faint); }
+.chrome-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    margin-top: auto;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-body);
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+.chrome-bottom .page-num span { color: var(--ink); }
+
+.slide-content { flex: 1; padding-top: 56px; min-height: 0; }
+
+h2.slide-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 68px;
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    max-width: 1400px;
+}
+h2.slide-title em { font-style: italic; color: var(--crimson); font-weight: 500; }
+
+.lede {
+    margin-top: 22px;
+    font-size: 24px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 1150px;
+    font-weight: 300;
+}
+
+/* Pull quote */
+.pull-quote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.28;
+    position: relative;
+}
+.pull-quote::before {
+    content: "\201C";
+    color: var(--crimson);
+    font-size: 1.4em;
+    line-height: 0;
+    margin-right: 4px;
+    vertical-align: -0.18em;
+}
+
+/* Agent chips */
+.chip-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+.chip {
+    font-family: var(--font-body);
+    font-size: 16px;
+    letter-spacing: 0.03em;
+    color: var(--crimson);
+    border: 1px solid var(--crimson);
+    border-radius: 999px;
+    padding: 8px 20px;
+    background: rgba(196, 30, 58, 0.05);
+}
+
+/* Tables */
+table.data-table { width: 100%; border-collapse: collapse; }
+table.data-table th {
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    padding: 0 24px 14px 0;
+    border-bottom: 1px solid var(--ink);
+}
+table.data-table td {
+    padding: 20px 24px 20px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    vertical-align: top;
+}
+table.data-table td.label {
+    color: var(--ink);
+    font-weight: 600;
+    width: 30%;
+}
+table.data-table .stat { color: var(--crimson); font-weight: 700; }
+table.data-table sup { font-size: 0.65em; color: var(--ink-faint); }
+
+/* Scrollable-free: everything fixed size within 1920x1080 */
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- ============================================================
+     SLIDE 1 — TITLE
+     ============================================================ -->
+<section class="slide active" data-title="Title">
+  <div class="slide-frame" style="justify-content:center; padding-top:0; padding-bottom:0;">
+    <div style="position:absolute; top:96px; left:160px; right:160px; height:1px; background:var(--rule);"></div>
+    <div style="position:absolute; bottom:96px; left:160px; right:160px; height:1px; background:var(--rule);"></div>
+
+    <p class="reveal editable" style="font-size:20px; letter-spacing:0.22em; text-transform:uppercase; color:var(--crimson); font-weight:600; margin-bottom:36px;">
+      <span style="color:var(--ink-faint);">—&nbsp;</span>Design Thinking &middot; Empathize Phase
+    </p>
+    <h1 class="reveal editable" style="font-family:var(--font-display); font-weight:500; font-size:120px; line-height:1.04; letter-spacing:-0.01em; max-width:1450px;">
+      BIFlow<br><em>Understanding the people</em><br>behind the pipeline
+    </h1>
+    <p class="reveal editable" style="margin-top:40px; font-weight:300; font-size:29px; line-height:1.55; color:var(--ink-soft); max-width:1050px;">
+      Personas, empathy maps, and the evidence behind them — an Ideation deliverable for the BIFlow project.
+    </p>
+    <div class="reveal" style="margin-top:60px; display:flex; align-items:center; gap:22px; font-size:19px; color:var(--ink-soft);">
+      <span class="editable">Sami</span><span style="width:6px;height:6px;border-radius:50%;background:var(--crimson);"></span>
+      <span class="editable">Sarra</span><span style="width:6px;height:6px;border-radius:50%;background:var(--crimson);"></span>
+      <span class="editable">Karim</span><span style="width:6px;height:6px;border-radius:50%;background:var(--crimson);"></span>
+      <span class="editable">Youssef</span>
+    </div>
+    <p style="position:absolute; bottom:44px; right:160px; font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-soft);">01 / 12</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 2 — METHODOLOGY
+     ============================================================ -->
+<section class="slide" data-title="Methodology">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">Methodology</span>
+      <span>BIFlow — Empathize Phase</span>
+    </div>
+    <div class="slide-content">
+      <h2 class="slide-title reveal editable">Empathize first, <em>architect second</em></h2>
+      <p class="lede reveal editable">BIFlow follows the Design Thinking process defined by the Hasso Plattner Institute of Design at Stanford (the d.school). The Empathize stage sets assumptions aside to understand needs, frustrations, and goals — before any architecture or feature decision is made.<sup>[1][2]</sup></p>
+
+      <div class="reveal" style="display:flex; gap:80px; margin-top:52px;">
+        <div style="flex:0 0 640px;">
+          <p style="font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:26px;">The d.school Process</p>
+          <div style="position:relative; padding-left:2px;">
+            <div style="position:absolute; left:19px; top:14px; bottom:14px; width:1px; background:var(--rule);"></div>
+            <div style="display:flex; flex-direction:column; gap:26px;">
+              <div style="display:flex; align-items:center; gap:24px;">
+                <div style="width:40px;height:40px;border-radius:50%;background:var(--crimson);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;font-weight:600;z-index:1;">1</div>
+                <div><div style="font-family:var(--font-display);font-size:30px;font-style:italic;color:var(--ink);">Empathize</div><div style="font-size:16px;color:var(--ink-faint);">— we are here</div></div>
+              </div>
+              <div style="display:flex; align-items:center; gap:24px;">
+                <div style="width:40px;height:40px;border-radius:50%;background:var(--bg-cream);border:1px solid var(--rule);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;z-index:1;">2</div>
+                <div style="font-size:22px; color:var(--ink-soft);">Define</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:24px;">
+                <div style="width:40px;height:40px;border-radius:50%;background:var(--bg-cream);border:1px solid var(--rule);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;z-index:1;">3</div>
+                <div style="font-size:22px; color:var(--ink-soft);">Ideate</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:24px;">
+                <div style="width:40px;height:40px;border-radius:50%;background:var(--bg-cream);border:1px solid var(--rule);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;z-index:1;">4</div>
+                <div style="font-size:22px; color:var(--ink-soft);">Prototype</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:24px;">
+                <div style="width:40px;height:40px;border-radius:50%;background:var(--bg-cream);border:1px solid var(--rule);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;z-index:1;">5</div>
+                <div style="font-size:22px; color:var(--ink-soft);">Test</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1; border-left:1px solid var(--rule); padding-left:64px;">
+          <p style="font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:18px;">The Tool — Empathy Map</p>
+          <p class="editable" style="font-size:21px; line-height:1.65; color:var(--ink-soft); max-width:680px;">Originally developed by Dave Gray at XPLANE and published in <em style="font-style:italic;">Gamestorming</em> (2010), later adopted into the d.school curriculum.<sup>[3][4]</sup> For each persona we capture:</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px 24px; margin-top:26px; max-width:680px;">
+            <div style="border:1px solid var(--card-border); border-radius:4px; padding:16px 20px;"><span style="font-family:var(--font-display); font-size:24px; font-style:italic;">Says</span></div>
+            <div style="border:1px solid var(--card-border); border-radius:4px; padding:16px 20px;"><span style="font-family:var(--font-display); font-size:24px; font-style:italic;">Thinks</span></div>
+            <div style="border:1px solid var(--card-border); border-radius:4px; padding:16px 20px;"><span style="font-family:var(--font-display); font-size:24px; font-style:italic;">Does</span></div>
+            <div style="border:1px solid var(--card-border); border-radius:4px; padding:16px 20px;"><span style="font-family:var(--font-display); font-size:24px; font-style:italic;">Feels</span></div>
+          </div>
+          <p class="editable" style="font-size:19px; line-height:1.6; color:var(--ink-soft); margin-top:22px; max-width:680px;">…plus each persona's <strong style="color:var(--ink);">Pains</strong> and <strong style="color:var(--ink);">Gains</strong>. Because BIFlow spans the entire BI pipeline — profiling, cleaning, KPI, analysis, dashboard, audit/XAI — empathy work here targets <em style="font-style:italic; color:var(--ink);">internal stakeholders of a BI pipeline inside a company.</em></p>
+        </div>
+      </div>
+    </div>
+    <div class="chrome-bottom">
+      <span>Sources: [1] IxDF &middot; [3][4] Gray, XPLANE / Gamestorming</span>
+      <span class="page-num">02 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 3 — PROBLEM IN NUMBERS
+     ============================================================ -->
+<section class="slide" data-title="Evidence">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">Why Empathy Matters</span>
+      <span>The Problem, In Numbers</span>
+    </div>
+    <div class="slide-content">
+      <h2 class="slide-title reveal editable">Five numbers that <em>define the mission</em></h2>
+
+      <div class="reveal" style="margin-top:36px;">
+        <table class="data-table">
+          <thead><tr><th>Pain point</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td class="label editable">Data prep dominates analysts' time</td><td class="editable"><span class="stat">~45%</span> of time on data preparation per Anaconda's survey (26%+ on cleaning alone); CrowdFlower found <span class="stat">60%</span> on cleaning, rising to <span class="stat">~80%</span> once collection is included.<sup>[5][6]</sup></td></tr>
+            <tr><td class="label editable">Poor data quality causes BI failure</td><td class="editable">Poor data quality is estimated to cause <span class="stat">38%</span> of BI project failures.<sup>[7]</sup></td></tr>
+            <tr><td class="label editable">Business users want self-service</td><td class="editable">Self-service tools are the top-cited driver of BI adoption for <span class="stat">73%</span> of organizations; <span class="stat">~60%</span> of enterprises have implemented self-service BI.<sup>[8][7]</sup></td></tr>
+            <tr><td class="label editable">Dashboard reliance is rising, trust is fragile</td><td class="editable">Daily-decision dashboard use rose <span class="stat">48% → 67%</span> (2023–2025); yet only <span class="stat">~51%</span> of data leaders trust AI-generated insights, and <span class="stat">40%</span> flag explainability as a key risk.<sup>[9][10][11]</sup></td></tr>
+            <tr><td class="label editable">Lack of explanation breaks trust</td><td class="editable">Inability to explain a decision is the top reason employees override automated output; trustworthy, explainable-AI organizations are <span class="stat">~15×</span> more likely to report strong ROI.<sup>[12]</sup></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="reveal editable" style="margin-top:30px; font-size:19px; line-height:1.6; color:var(--ink-soft); max-width:1550px;">These five points map directly onto BIFlow's mission: automate the pipeline <em style="font-style:italic;">(rows 1–2)</em>, keep it self-service <em style="font-style:italic;">(row 3)</em>, and keep it trustworthy and explainable <em style="font-style:italic;">(rows 4–5)</em> — exactly why the architecture includes a dedicated <strong style="color:var(--ink);">BI Auditor / XAI Agent</strong>, not just a pipeline of silent transformations.</p>
+    </div>
+    <div class="chrome-bottom">
+      <span>Sources: [5]–[12], see References</span>
+      <span class="page-num">03 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 4 — PERSONA OVERVIEW
+     ============================================================ -->
+<section class="slide" data-title="Personas Overview">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">The Personas</span>
+      <span>Four Internal Stakeholders</span>
+    </div>
+    <div class="slide-content">
+      <h2 class="slide-title reveal editable">Four people who <em>live with this pipeline</em> today</h2>
+      <p class="lede reveal editable">Each persona targets an internal stakeholder of a BI pipeline inside a company, and is paired with the BIFlow agent(s) most responsible for solving their pain — so Empathize feeds directly into Define / Ideate.</p>
+
+      <div class="reveal" style="display:grid; grid-template-columns:repeat(4,1fr); gap:28px; margin-top:52px;">
+        <div style="border:1px solid var(--card-border); border-radius:6px; padding:32px 26px; background:var(--card-bg);">
+          <p style="font-size:15px; color:var(--ink-faint); letter-spacing:0.1em; text-transform:uppercase;">01</p>
+          <p style="font-family:var(--font-display); font-size:36px; font-style:italic; margin-top:10px;" class="editable">Sami</p>
+          <p style="font-size:18px; color:var(--ink-soft); margin-top:4px;" class="editable">Data / BI Analyst</p>
+          <div style="height:1px; background:var(--rule); margin:20px 0;"></div>
+          <p style="font-size:16px; color:var(--ink-soft); line-height:1.5;" class="editable">Automated, traceable data cleaning</p>
+        </div>
+        <div style="border:1px solid var(--card-border); border-radius:6px; padding:32px 26px; background:var(--card-bg);">
+          <p style="font-size:15px; color:var(--ink-faint); letter-spacing:0.1em; text-transform:uppercase;">02</p>
+          <p style="font-family:var(--font-display); font-size:36px; font-style:italic; margin-top:10px;" class="editable">Sarra</p>
+          <p style="font-size:18px; color:var(--ink-soft); margin-top:4px;" class="editable">Business / Dept. Manager</p>
+          <div style="height:1px; background:var(--rule); margin:20px 0;"></div>
+          <p style="font-size:16px; color:var(--ink-soft); line-height:1.5;" class="editable">Self-service, plain-language dashboards</p>
+        </div>
+        <div style="border:1px solid var(--card-border); border-radius:6px; padding:32px 26px; background:var(--card-bg);">
+          <p style="font-size:15px; color:var(--ink-faint); letter-spacing:0.1em; text-transform:uppercase;">03</p>
+          <p style="font-family:var(--font-display); font-size:36px; font-style:italic; margin-top:10px;" class="editable">Karim</p>
+          <p style="font-size:18px; color:var(--ink-soft); margin-top:4px;" class="editable">Executive Decision-Maker</p>
+          <div style="height:1px; background:var(--rule); margin:20px 0;"></div>
+          <p style="font-size:16px; color:var(--ink-soft); line-height:1.5;" class="editable">Fast, high-confidence, explained insights</p>
+        </div>
+        <div style="border:1px solid var(--card-border); border-radius:6px; padding:32px 26px; background:var(--card-bg);">
+          <p style="font-size:15px; color:var(--ink-faint); letter-spacing:0.1em; text-transform:uppercase;">04</p>
+          <p style="font-family:var(--font-display); font-size:36px; font-style:italic; margin-top:10px;" class="editable">Youssef</p>
+          <p style="font-size:18px; color:var(--ink-soft); margin-top:4px;" class="editable">Data / IT Engineer</p>
+          <div style="height:1px; background:var(--rule); margin:20px 0;"></div>
+          <p style="font-size:16px; color:var(--ink-soft); line-height:1.5;" class="editable">Governed pipeline with full lineage</p>
+        </div>
+      </div>
+    </div>
+    <div class="chrome-bottom">
+      <span>Section 3 of 5</span>
+      <span class="page-num">04 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 5 — PERSONA: SAMI
+     ============================================================ -->
+<section class="slide" data-title="Persona — Sami">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">Persona 01</span>
+      <span>Sami — the Data / BI Analyst</span>
+    </div>
+    <div class="slide-content" style="display:flex; gap:72px;">
+      <div style="flex:0 0 620px;">
+        <h2 style="font-family:var(--font-display); font-size:58px; font-weight:500; font-style:italic;" class="reveal editable">Sami</h2>
+        <p class="reveal editable" style="font-size:19px; color:var(--ink-soft); margin-top:4px;">Junior–mid BI/Data Analyst inside a business unit (retail, telecom, finance)</p>
+
+        <div class="reveal" style="margin-top:26px; font-size:17px; line-height:2.1; color:var(--ink-soft);">
+          <div class="editable"><strong style="color:var(--ink);">Reports to</strong> — Analytics Team Lead</div>
+          <div class="editable"><strong style="color:var(--ink);">Tools today</strong> — Excel, SQL, Python/Pandas, Power BI/Tableau</div>
+          <div class="editable"><strong style="color:var(--ink);">Goal</strong> — Deliver a trustworthy, up-to-date dashboard with the right KPIs, fast</div>
+        </div>
+
+        <p class="pull-quote reveal editable" style="font-size:29px; margin-top:32px; max-width:560px;">I became an analyst to find insights, not to spend my week fixing broken spreadsheets.</p>
+
+        <p class="reveal editable" style="font-size:17px; line-height:1.6; color:var(--ink-soft); margin-top:26px; max-width:560px;">Rebuilds profiling and cleaning logic from scratch on every new dataset, and has no easy way to justify why a value was corrected when a stakeholder questions the numbers.</p>
+      </div>
+
+      <div style="flex:1; border-left:1px solid var(--rule); padding-left:64px;">
+        <p style="font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:20px;">Empathy Map</p>
+        <div class="reveal" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Says</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">"Where did this outlier come from?" / "Why are there three date formats in one column?"</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Thinks</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">"If I could just get clean, modeled data automatically, I'd spend my time on the interesting part."</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Does</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">Writes one-off cleaning scripts, manually cross-checks joins, redoes work when new data arrives.</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Feels</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">Frustrated by repetitive low-value work; anxious about silently propagating an error into a KPI.</p>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:26px; border-top:1px solid var(--rule); padding-top:22px;">
+          <p class="editable" style="font-size:17px; color:var(--ink-soft); line-height:1.55;"><strong style="color:var(--ink);">Pains → Gains —</strong> Repetitive manual cleaning, no traceability → wants automated profiling/cleaning with a reviewable log of every transformation.</p>
+          <p style="font-size:15px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); margin-top:18px; margin-bottom:8px;">Addressed by</p>
+          <div class="chip-row">
+            <span class="chip editable">Data Profiler Agent</span>
+            <span class="chip editable">Data Quality / ETL Agent</span>
+            <span class="chip editable">BI Auditor / XAI Agent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome-bottom">
+      <span>Persona 1 of 4</span>
+      <span class="page-num">05 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 6 — PERSONA: SARRA
+     ============================================================ -->
+<section class="slide" data-title="Persona — Sarra">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">Persona 02</span>
+      <span>Sarra — the Business / Department Manager</span>
+    </div>
+    <div class="slide-content" style="display:flex; gap:72px;">
+      <div style="flex:0 0 620px;">
+        <h2 style="font-family:var(--font-display); font-size:58px; font-weight:500; font-style:italic;" class="reveal editable">Sarra</h2>
+        <p class="reveal editable" style="font-size:19px; color:var(--ink-soft); margin-top:4px;">Non-technical manager (Marketing, Operations, Customer Service)</p>
+
+        <div class="reveal" style="margin-top:26px; font-size:17px; line-height:2.1; color:var(--ink-soft);">
+          <div class="editable"><strong style="color:var(--ink);">Reports to</strong> — Director / VP</div>
+          <div class="editable"><strong style="color:var(--ink);">Tools today</strong> — Whatever dashboard IT/analytics hands her; largely read-only</div>
+          <div class="editable"><strong style="color:var(--ink);">Goal</strong> — Make weekly decisions (budget, staffing, campaigns) on current, understandable KPIs</div>
+        </div>
+
+        <p class="pull-quote reveal editable" style="font-size:29px; margin-top:32px; max-width:560px;">I don't need more data. I need to know what it means and what to do about it.</p>
+
+        <p class="reveal editable" style="font-size:17px; line-height:1.6; color:var(--ink-soft); margin-top:26px; max-width:560px;">Depends entirely on the analytics team's backlog for anything new, and doesn't trust a number she can't explain to her own boss.</p>
+      </div>
+
+      <div style="flex:1; border-left:1px solid var(--rule); padding-left:64px;">
+        <p style="font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:20px;">Empathy Map</p>
+        <div class="reveal" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Says</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">"Can someone just tell me if churn went up or down and why?"</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Thinks</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">"I shouldn't need a data degree to understand my own department's performance."</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Does</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">Requests ad hoc reports, waits days for turnaround, decides on gut feeling when data is late.</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Feels</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">Disempowered when dependent on others; relieved when a dashboard gives a plain-language answer.</p>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:26px; border-top:1px solid var(--rule); padding-top:22px;">
+          <p class="editable" style="font-size:17px; color:var(--ink-soft); line-height:1.55;"><strong style="color:var(--ink);">Pains → Gains —</strong> Slow turnaround, jargon, no autonomy → wants a self-service, auto-updating dashboard with plain-language explanations, not just charts.</p>
+          <p style="font-size:15px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); margin-top:18px; margin-bottom:8px;">Addressed by</p>
+          <div class="chip-row">
+            <span class="chip editable">KPI &amp; Semantic Agent</span>
+            <span class="chip editable">Dashboard Generator Agent</span>
+            <span class="chip editable">BI Analyst Agent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome-bottom">
+      <span>Persona 2 of 4 &middot; Self-service cited as top driver of BI adoption by 73% of orgs<sup>[8]</sup></span>
+      <span class="page-num">06 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 7 — PERSONA: KARIM
+     ============================================================ -->
+<section class="slide" data-title="Persona — Karim">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">Persona 03</span>
+      <span>Karim — the Executive Decision-Maker</span>
+    </div>
+    <div class="slide-content" style="display:flex; gap:72px;">
+      <div style="flex:0 0 620px;">
+        <h2 style="font-family:var(--font-display); font-size:58px; font-weight:500; font-style:italic;" class="reveal editable">Karim</h2>
+        <p class="reveal editable" style="font-size:19px; color:var(--ink-soft); margin-top:4px;">C-level / senior leadership (CEO, COO, or department VP)</p>
+
+        <div class="reveal" style="margin-top:26px; font-size:17px; line-height:2.1; color:var(--ink-soft);">
+          <div class="editable"><strong style="color:var(--ink);">Reports to</strong> — Board / shareholders</div>
+          <div class="editable"><strong style="color:var(--ink);">Tools today</strong> — Executive summary decks, occasional dashboard glance</div>
+          <div class="editable"><strong style="color:var(--ink);">Goal</strong> — Make fast, high-stakes strategic calls with confidence</div>
+        </div>
+
+        <p class="pull-quote reveal editable" style="font-size:29px; margin-top:32px; max-width:560px;">Don't show me the data — show me what it means, and tell me you're sure.</p>
+
+        <p class="reveal editable" style="font-size:17px; line-height:1.6; color:var(--ink-soft); margin-top:26px; max-width:560px;">Has been burned before by a "confident-sounding" report resting on bad data; skeptical of AI recommendations without a clear rationale.</p>
+      </div>
+
+      <div style="flex:1; border-left:1px solid var(--rule); padding-left:64px;">
+        <p style="font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:20px;">Empathy Map</p>
+        <div class="reveal" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Says</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">"What's driving this trend, and how confident are we?"</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Thinks</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">"I need to trust this number before I put it in front of the board."</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Does</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">Reviews a handful of top-line KPIs before decisions, asks pointed follow-up questions.</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Feels</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">Under time pressure; wary of being misled by an opaque system.</p>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:26px; border-top:1px solid var(--rule); padding-top:22px;">
+          <p class="editable" style="font-size:17px; color:var(--ink-soft); line-height:1.55;"><strong style="color:var(--ink);">Pains → Gains —</strong> Time scarcity, low tolerance for unexplained numbers → wants concise, high-confidence insights with a visible "why," not a black box.</p>
+          <p style="font-size:15px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); margin-top:18px; margin-bottom:8px;">Addressed by</p>
+          <div class="chip-row">
+            <span class="chip editable">BI Analyst Agent</span>
+            <span class="chip editable">BI Auditor / XAI Agent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome-bottom">
+      <span>Persona 3 of 4 &middot; Only ~51% of data leaders trust AI-generated insights<sup>[10][11]</sup></span>
+      <span class="page-num">07 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 8 — PERSONA: YOUSSEF
+     ============================================================ -->
+<section class="slide" data-title="Persona — Youssef">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">Persona 04</span>
+      <span>Youssef — the Data / IT Engineer</span>
+    </div>
+    <div class="slide-content" style="display:flex; gap:72px;">
+      <div style="flex:0 0 620px;">
+        <h2 style="font-family:var(--font-display); font-size:58px; font-weight:500; font-style:italic;" class="reveal editable">Youssef</h2>
+        <p class="reveal editable" style="font-size:19px; color:var(--ink-soft); margin-top:4px;">Data engineer / IT owner responsible for pipeline reliability &amp; governance</p>
+
+        <div class="reveal" style="margin-top:26px; font-size:17px; line-height:2.1; color:var(--ink-soft);">
+          <div class="editable"><strong style="color:var(--ink);">Reports to</strong> — Head of Data / CTO</div>
+          <div class="editable"><strong style="color:var(--ink);">Tools today</strong> — Custom ETL scripts, cron jobs, manual monitoring</div>
+          <div class="editable"><strong style="color:var(--ink);">Goal</strong> — Keep the pipeline running correctly, auditable, and compliant</div>
+        </div>
+
+        <p class="pull-quote reveal editable" style="font-size:29px; margin-top:32px; max-width:560px;">I'm fine with automation — as long as I can see exactly what it did and undo it if it's wrong.</p>
+
+        <p class="reveal editable" style="font-size:17px; line-height:1.6; color:var(--ink-soft); margin-top:26px; max-width:560px;">Worried about handing decisions to agents he can't fully inspect — accountability still falls on him.</p>
+      </div>
+
+      <div style="flex:1; border-left:1px solid var(--rule); padding-left:64px;">
+        <p style="font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:20px;">Empathy Map</p>
+        <div class="reveal" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Says</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">"Which agent touched this table, and what exactly did it change?"</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Thinks</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">"Automation is only safe if it's traceable and reversible."</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Does</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">Reviews logs after failures, manually patches pipelines, pushes back on "black box" tooling.</p>
+          </div>
+          <div style="border:1px solid var(--card-border); border-radius:4px; padding:22px 24px;">
+            <p style="font-family:var(--font-display); font-style:italic; font-size:22px; color:var(--crimson); margin-bottom:10px;">Feels</p>
+            <p class="editable" style="font-size:16px; line-height:1.55; color:var(--ink-soft);">Responsible for outcomes he may not fully control; reassured by clear logs and overrides.</p>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:26px; border-top:1px solid var(--rule); padding-top:22px;">
+          <p class="editable" style="font-size:17px; color:var(--ink-soft); line-height:1.55;"><strong style="color:var(--ink);">Pains → Gains —</strong> Fragile pipelines, no traceability, accountability without visibility → wants a governed pipeline with full lineage and an explicit override/validation layer.</p>
+          <p style="font-size:15px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); margin-top:18px; margin-bottom:8px;">Addressed by</p>
+          <div class="chip-row">
+            <span class="chip editable">BI Orchestrator Agent</span>
+            <span class="chip editable">Data Quality / ETL Agent</span>
+            <span class="chip editable">BI Auditor / XAI Agent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chrome-bottom">
+      <span>Persona 4 of 4 &middot; Poor data quality causes an estimated 38% of BI project failures<sup>[7]</sup></span>
+      <span class="page-num">08 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 9 — CROSS-PERSONA SYNTHESIS
+     ============================================================ -->
+<section class="slide" data-title="Cross-Persona Synthesis">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">Synthesis</span>
+      <span>Cross-Persona Map</span>
+    </div>
+    <div class="slide-content">
+      <h2 class="slide-title reveal editable">One need, <em>four faces</em></h2>
+      <div class="reveal" style="margin-top:40px;">
+        <table class="data-table">
+          <thead><tr><th style="width:22%;">Persona</th><th style="width:38%;">Core need</th><th>Primary BIFlow agent(s)</th></tr></thead>
+          <tbody>
+            <tr><td class="label editable">Sami — Analyst</td><td class="editable">Automated, traceable data cleaning</td><td class="editable">Data Profiler, Data Quality/ETL</td></tr>
+            <tr><td class="label editable">Sarra — Manager</td><td class="editable">Self-service, plain-language dashboards</td><td class="editable">KPI/Semantic, Dashboard Generator</td></tr>
+            <tr><td class="label editable">Karim — Executive</td><td class="editable">Fast, high-confidence, explained insights</td><td class="editable">BI Analyst, BI Auditor/XAI</td></tr>
+            <tr><td class="label editable">Youssef — Engineer</td><td class="editable">Governed pipeline with full lineage</td><td class="editable">BI Orchestrator, BI Auditor/XAI</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="reveal editable" style="margin-top:36px; font-size:21px; line-height:1.65; color:var(--ink-soft); max-width:1500px;">The recurring theme is not "more automation" in isolation — it is <strong style="color:var(--ink);">automation that remains explainable and controllable.</strong> This is precisely why the BI Auditor/XAI Agent is a first-class agent rather than an afterthought, and why the BI Orchestrator Agent exists to coordinate and validate rather than let agents run unchecked.</p>
+    </div>
+    <div class="chrome-bottom">
+      <span>Section 4 of 5</span>
+      <span class="page-num">09 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 10 — THESIS PULL-QUOTE
+     ============================================================ -->
+<section class="slide" data-title="Thesis">
+  <div class="slide-frame" style="justify-content:center; align-items:center; text-align:center;">
+    <p class="reveal editable" style="font-size:18px; letter-spacing:0.22em; text-transform:uppercase; color:var(--crimson); font-weight:600; margin-bottom:44px;">The Recurring Theme</p>
+    <p class="pull-quote reveal editable" style="font-size:64px; max-width:1500px; text-align:center;">Not more automation in isolation — automation that remains <em>explainable and controllable.</em></p>
+    <p class="reveal editable" style="margin-top:48px; font-size:18px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint);">— Cross-Persona Synthesis, &sect;4</p>
+    <p style="position:absolute; bottom:44px; right:160px; font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-soft);">10 / 12</p>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 11 — REFERENCES
+     ============================================================ -->
+<section class="slide" data-title="References">
+  <div class="slide-frame">
+    <div class="chrome-top">
+      <span class="kicker">References</span>
+      <span>Sources Cited</span>
+    </div>
+    <div class="slide-content" style="padding-top:44px;">
+      <div class="reveal" style="display:grid; grid-template-columns:1fr 1fr; gap:0 80px; font-size:16px; line-height:1.7; color:var(--ink-soft);">
+        <div>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[1]</strong> Interaction Design Foundation. <em style="font-style:italic;">What is Design Thinking?</em> — five-stage d.school model.</p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[2]</strong> Interaction Design Foundation. <em style="font-style:italic;">The 5 Stages in the Design Thinking Process.</em></p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[3]</strong> Gray, D. <em style="font-style:italic;">The Empathy Map: A Human-Centered Tool.</em> XPLANE.</p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[4]</strong> Gray, D., Brown, S., &amp; Macanufo, J. (2010). <em style="font-style:italic;">Gamestorming.</em></p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[5]</strong> Amperity. <em style="font-style:italic;">Your Data Scientists Were Hired to Build Models.</em> (Anaconda / CrowdFlower surveys)</p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[6]</strong> Press, G. (2016). <em style="font-style:italic;">Cleaning Big Data.</em> Forbes / CrowdFlower.</p>
+        </div>
+        <div>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[7]</strong> WorldMetrics. <em style="font-style:italic;">Business Intelligence Industry Statistics — 2026 Edition.</em></p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[8]</strong> BARC / Eckerson Group (2021–2022). <em style="font-style:italic;">Drivers of BI and Analytics Adoption.</em></p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[9]</strong> DataStackHub. <em style="font-style:italic;">Business Intelligence (BI) Statistics For 2025–2026.</em></p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[10]</strong> insightsoftware (2026). <em style="font-style:italic;">Why Don't Data Leaders Trust AI?</em></p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[11]</strong> McKinsey &amp; Company. <em style="font-style:italic;">Building trust in AI: The role of explainability.</em></p>
+          <p class="editable" style="margin-bottom:20px;"><strong style="color:var(--ink);">[12]</strong> SAS / IDC (2026). <em style="font-style:italic;">Trustworthy AI practices are 15× more likely to see strong ROI.</em></p>
+        </div>
+      </div>
+    </div>
+    <div class="chrome-bottom">
+      <span>Full citations with URLs available in the source document</span>
+      <span class="page-num">11 / <span>12</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 12 — CLOSING
+     ============================================================ -->
+<section class="slide" data-title="Closing">
+  <div class="slide-frame" style="justify-content:center;">
+    <div style="position:absolute; top:96px; left:160px; right:160px; height:1px; background:var(--rule);"></div>
+    <div style="position:absolute; bottom:96px; left:160px; right:160px; height:1px; background:var(--rule);"></div>
+
+    <p class="reveal editable" style="font-size:20px; letter-spacing:0.22em; text-transform:uppercase; color:var(--crimson); font-weight:600; margin-bottom:30px;"><span style="color:var(--ink-faint);">—&nbsp;</span>End of Empathize Phase</p>
+    <h2 class="reveal editable" style="font-family:var(--font-display); font-weight:500; font-size:88px; line-height:1.08; max-width:1400px;">From empathy<br>to <em style="color:var(--crimson);">Define</em> &amp; <em style="color:var(--crimson);">Ideate</em></h2>
+    <p class="reveal editable" style="margin-top:34px; font-size:23px; line-height:1.6; color:var(--ink-soft); max-width:1050px; font-weight:300;">Prepared for the BIFlow project — a Design Thinking Ideation deliverable. Four personas, one recurring need: automation that stays explainable and controllable.</p>
+    <p style="position:absolute; bottom:44px; right:160px; font-size:16px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-soft);">12 / 12</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<!-- ============================================================
+     DECK CONTROLS (outside the stage)
+     ============================================================ -->
+<div class="deck-controls" id="deckControls" style="display:flex; align-items:center; gap:18px; background:rgba(26,26,26,0.82); backdrop-filter:blur(6px); border-radius:999px; padding:10px 20px; font-family:'Source Serif 4', serif;">
+  <button id="prevBtn" aria-label="Previous slide" style="all:unset; cursor:pointer; color:#fff; font-size:18px; padding:4px 8px;">&larr;</button>
+  <span id="pageIndicator" style="color:#fff; font-size:14px; letter-spacing:0.08em; min-width:52px; text-align:center;">01 / 12</span>
+  <button id="nextBtn" aria-label="Next slide" style="all:unset; cursor:pointer; color:#fff; font-size:18px; padding:4px 8px;">&rarr;</button>
+</div>
+
+<div class="edit-hotzone" id="editHotzone" style="position:fixed; top:0; left:0; width:80px; height:80px; z-index:10000; cursor:pointer;"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)" style="position:fixed; top:16px; left:16px; z-index:10001; width:40px; height:40px; border-radius:50%; border:none; background:#1a1a1a; color:#faf9f7; font-size:16px; opacity:0; pointer-events:none; transition:opacity 0.3s ease; cursor:pointer;">&#9998;</button>
+<div id="editStatus" style="position:fixed; top:16px; left:66px; z-index:10001; font-family:'Source Serif 4', serif; font-size:13px; color:#1a1a1a; background:#faf9f7; border:1px solid #d8d2c8; border-radius:6px; padding:8px 14px; display:none;">Editing — click text to edit, Ctrl+S to save</div>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.total = this.slides.length;
+        this.currentSlide = 0;
+        this.stage = document.getElementById('deckStage');
+        this.pageIndicator = document.getElementById('pageIndicator');
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupWheelNav();
+        this.setupControls();
+        this.showSlide(0);
+    }
+    setupStageScale() {
+        const scale = () => {
+            const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            const x = (window.innerWidth - 1920 * factor) / 2;
+            const y = (window.innerHeight - 1080 * factor) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+        };
+        scale();
+        window.addEventListener('resize', scale);
+    }
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (window.editor && window.editor.isActive && e.target.getAttribute('contenteditable')) return;
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); this.next(); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); this.prev(); }
+        });
+    }
+    setupTouchNav() {
+        let startX = 0;
+        document.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - startX;
+            if (Math.abs(dx) > 60) { dx < 0 ? this.next() : this.prev(); }
+        }, { passive: true });
+    }
+    setupWheelNav() {
+        let wheelLock = false;
+        document.addEventListener('wheel', (e) => {
+            if (wheelLock) return;
+            if (Math.abs(e.deltaY) < 24) return;
+            wheelLock = true;
+            e.deltaY > 0 ? this.next() : this.prev();
+            setTimeout(() => { wheelLock = false; }, 550);
+        }, { passive: true });
+    }
+    setupControls() {
+        document.getElementById('nextBtn').addEventListener('click', () => this.next());
+        document.getElementById('prevBtn').addEventListener('click', () => this.prev());
+    }
+    next() { this.showSlide(this.currentSlide + 1); }
+    prev() { this.showSlide(this.currentSlide - 1); }
+    showSlide(index) {
+        this.currentSlide = Math.max(0, Math.min(index, this.total - 1));
+        this.slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === this.currentSlide);
+            slide.classList.toggle('visible', i === this.currentSlide);
+        });
+        this.pageIndicator.textContent = `${String(this.currentSlide + 1).padStart(2, '0')} / ${this.total}`;
+    }
+}
+
+/* ===========================================
+   INLINE EDIT MODE — hover hotzone + E key
+   =========================================== */
+class InlineEditor {
+    constructor() {
+        this.isActive = false;
+        this.storageKey = 'biflow-empathize-deck-v1';
+        this.editables = Array.from(document.querySelectorAll('.editable'));
+        this.editables.forEach((el, i) => { if (!el.dataset.eid) el.dataset.eid = 'e' + i; });
+        this.restore();
+        this.bindHoverZone();
+        this.bindToggle();
+        this.bindSaveShortcut();
+    }
+    restore() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
+            this.editables.forEach(el => {
+                if (saved[el.dataset.eid] !== undefined) el.innerHTML = saved[el.dataset.eid];
+            });
+        } catch (e) { /* ignore corrupt storage */ }
+    }
+    persist() {
+        const data = {};
+        this.editables.forEach(el => { data[el.dataset.eid] = el.innerHTML; });
+        try { localStorage.setItem(this.storageKey, JSON.stringify(data)); } catch (e) { /* storage full/unavailable */ }
+    }
+    bindHoverZone() {
+        const hotzone = document.getElementById('editHotzone');
+        const toggle = document.getElementById('editToggle');
+        let hideTimeout = null;
+        const show = () => { clearTimeout(hideTimeout); toggle.style.opacity = '1'; toggle.style.pointerEvents = 'auto'; };
+        const scheduleHide = () => { hideTimeout = setTimeout(() => { if (!this.isActive) { toggle.style.opacity = '0'; toggle.style.pointerEvents = 'none'; } }, 400); };
+        hotzone.addEventListener('mouseenter', show);
+        hotzone.addEventListener('mouseleave', scheduleHide);
+        toggle.addEventListener('mouseenter', show);
+        toggle.addEventListener('mouseleave', scheduleHide);
+        hotzone.addEventListener('click', () => this.toggleEditMode());
+    }
+    bindToggle() {
+        document.getElementById('editToggle').addEventListener('click', () => this.toggleEditMode());
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'e' || e.key === 'E') && document.activeElement.getAttribute('contenteditable') !== 'true') {
+                this.toggleEditMode();
+            }
+        });
+    }
+    bindSaveShortcut() {
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                this.persist();
+                this.flashStatus('Saved');
+            }
+        });
+    }
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.getElementById('editToggle').style.background = this.isActive ? '#c41e3a' : '#1a1a1a';
+        document.getElementById('editStatus').style.display = this.isActive ? 'block' : 'none';
+        this.editables.forEach(el => {
+            el.setAttribute('contenteditable', this.isActive ? 'true' : 'false');
+            el.style.outline = this.isActive ? '1px dashed rgba(196,30,58,0.4)' : 'none';
+        });
+        if (!this.isActive) this.persist();
+    }
+    flashStatus(msg) {
+        const status = document.getElementById('editStatus');
+        const prev = status.textContent;
+        status.textContent = msg;
+        status.style.display = 'block';
+        setTimeout(() => { status.textContent = prev; }, 1200);
+    }
+}
+
+new SlidePresentation();
+window.editor = new InlineEditor();
+</script>
+</body>
+</html>
