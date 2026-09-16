@@ -38,3 +38,23 @@ def test_detect_trends_only_evaluates_kpis_with_a_known_threshold():
     kpis = _kpi_catalog(total_revenue=1000.0)
     trends = detect_trends(kpis)
     assert trends == {}
+
+
+def test_detect_trends_flags_loan_good_standing_rate_below_threshold_as_concerning():
+    kpis = _kpi_catalog(loan_good_standing_rate=0.80)
+    trends = detect_trends(kpis)
+    assert trends["loan_good_standing_rate"] == {
+        "value": 0.80,
+        "threshold": 0.85,
+        "status": "concerning",
+    }
+
+
+def test_detect_trends_flags_average_account_balance_at_or_above_threshold_as_healthy():
+    kpis = _kpi_catalog(average_account_balance=35000.0)
+    trends = detect_trends(kpis)
+    assert trends["average_account_balance"] == {
+        "value": 35000.0,
+        "threshold": 30000.0,
+        "status": "healthy",
+    }

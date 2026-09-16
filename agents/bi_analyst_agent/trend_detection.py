@@ -12,6 +12,8 @@ from shared.schemas.data_contracts import KPICatalog
 THRESHOLDS = {
     "on_time_delivery_rate": 0.9,
     "average_review_score": 4.0,
+    "loan_good_standing_rate": 0.85,
+    "average_account_balance": 30000.0,
 }
 
 
