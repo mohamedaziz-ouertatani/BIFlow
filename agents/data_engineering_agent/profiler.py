@@ -7,24 +7,43 @@ import pandas as pd
 
 from shared.schemas.data_contracts import ProfilingReport, RawDatasetRef
 
-TABLE_FILENAMES = {
-    "orders": "olist_orders_dataset.csv",
-    "customers": "olist_customers_dataset.csv",
-    "order_items": "olist_order_items_dataset.csv",
-    "order_payments": "olist_order_payments_dataset.csv",
-    "order_reviews": "olist_order_reviews_dataset.csv",
-    "products": "olist_products_dataset.csv",
-    "sellers": "olist_sellers_dataset.csv",
-    "geolocation": "olist_geolocation_dataset.csv",
-    "category_translation": "product_category_name_translation.csv",
+TABLE_FILENAMES_BY_DOMAIN = {
+    "e-commerce": {
+        "orders": "olist_orders_dataset.csv",
+        "customers": "olist_customers_dataset.csv",
+        "order_items": "olist_order_items_dataset.csv",
+        "order_payments": "olist_order_payments_dataset.csv",
+        "order_reviews": "olist_order_reviews_dataset.csv",
+        "products": "olist_products_dataset.csv",
+        "sellers": "olist_sellers_dataset.csv",
+        "geolocation": "olist_geolocation_dataset.csv",
+        "category_translation": "product_category_name_translation.csv",
+    },
+    "banking": {
+        "account": "account.csv",
+        "client": "client.csv",
+        "disp": "disp.csv",
+        "district": "district.csv",
+        "loan": "loan.csv",
+        "card": "card.csv",
+        "order": "order.csv",
+        "trans": "trans.csv",
+    },
+}
+
+CSV_SEP_BY_DOMAIN = {
+    "e-commerce": ",",
+    "banking": ";",
 }
 
 
-def load_all_tables(dataset_dir: str) -> dict[str, pd.DataFrame]:
-    """Loads every Olist table from dataset_dir, keyed by logical table name."""
+def load_all_tables(dataset_dir: str, business_domain: str) -> dict[str, pd.DataFrame]:
+    """Loads every table for business_domain from dataset_dir, keyed by logical table name."""
+    filenames = TABLE_FILENAMES_BY_DOMAIN[business_domain]
+    sep = CSV_SEP_BY_DOMAIN[business_domain]
     return {
-        logical_name: pd.read_csv(os.path.join(dataset_dir, filename))
-        for logical_name, filename in TABLE_FILENAMES.items()
+        logical_name: pd.read_csv(os.path.join(dataset_dir, filename), sep=sep)
+        for logical_name, filename in filenames.items()
     }
 
 
@@ -57,7 +76,7 @@ def profile_table(name: str, df: pd.DataFrame) -> dict[str, Any]:
 
 def profile_dataset(raw_dataset: RawDatasetRef) -> ProfilingReport:
     """Profiles every table in raw_dataset.dataset_path and aggregates into one ProfilingReport."""
-    tables = load_all_tables(raw_dataset.dataset_path)
+    tables = load_all_tables(raw_dataset.dataset_path, raw_dataset.business_domain)
 
     n_rows = 0
     n_columns = 0
