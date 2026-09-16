@@ -55,3 +55,18 @@ def test_generate_monthly_trend_insights_rounds_long_float_values():
     insights = generate_monthly_trend_insights(monthly_trends)
     assert "4.290322580645161" not in insights[0].description
     assert "4.29" in insights[0].description
+
+
+def test_generate_monthly_trend_insights_uses_named_label_for_transaction_volume():
+    monthly_trends = {
+        "total_transaction_volume": {
+            "previous_month": "2018-01",
+            "latest_month": "2018-02",
+            "previous_value": 100.0,
+            "latest_value": 150.0,
+            "pct_change": 50.0,
+            "direction": "increasing",
+        }
+    }
+    insights = generate_monthly_trend_insights(monthly_trends)
+    assert insights[0].title == "Transaction volume increasing month-over-month"

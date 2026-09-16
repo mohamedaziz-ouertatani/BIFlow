@@ -9,6 +9,10 @@ TITLES = {
     ("on_time_delivery_rate", "concerning"): "On-time delivery rate below target",
     ("average_review_score", "healthy"): "Strong customer satisfaction",
     ("average_review_score", "concerning"): "Review scores below target",
+    ("loan_good_standing_rate", "healthy"): "Strong loan repayment performance",
+    ("loan_good_standing_rate", "concerning"): "Loan default rate above target",
+    ("average_account_balance", "healthy"): "Healthy average account balance",
+    ("average_account_balance", "concerning"): "Average account balance below target",
 }
 
 SEVERITY_BY_STATUS = {
@@ -45,6 +49,9 @@ MONTHLY_TREND_LABELS = {
     "total_revenue": "Revenue",
     "order_count": "Order volume",
     "average_review_score": "Review score",
+    "total_transaction_volume": "Transaction volume",
+    "transaction_count": "Transaction count",
+    "average_account_balance": "Account balance",
 }
 
 SEVERITY_BY_DIRECTION = {
