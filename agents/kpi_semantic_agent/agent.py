@@ -31,6 +31,7 @@ DIMENSION_COLUMNS_BY_DOMAIN = {
 class KPISemanticAgent:
     """Defines KPIs for the business domain and computes their values against the cleaned dataset."""
 
+    # Computes the KPI catalog for the given cleaned dataset.
     def run(self, cleaned: CleanedDataset) -> KPICatalog:
         """Computes the KPI catalog for the given cleaned dataset."""
         business_domain = cleaned.business_domain
@@ -49,5 +50,8 @@ class KPISemanticAgent:
         }
 
         return KPICatalog(
-            kpis=kpi_definitions, computed_values=computed_values, breakdowns=breakdowns
+            kpis=kpi_definitions,
+            computed_values=computed_values,
+            breakdowns=breakdowns,
+            business_domain=business_domain,
         )

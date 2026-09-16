@@ -18,6 +18,7 @@ from shared.schemas.data_contracts import (
 class AuditorXAIAgent:
     """Validates pipeline outputs and produces explanations + a traceability log."""
 
+    # Validates the run, generates explanations, and builds the final audit report.
     def run(
         self,
         cleaned: CleanedDataset,

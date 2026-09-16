@@ -31,4 +31,5 @@ export interface DashboardLayout {
   kpi_cards: KpiCard[];
   insights: Insight[];
   monthly_trends: Record<string, MonthlyTrendPoint[]>;
+  business_domain?: string;
 }

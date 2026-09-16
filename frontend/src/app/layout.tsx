@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: "Live KPIs and insights from the BIFlow pipeline",
 };
 
+// Root HTML shell applied to every page, wiring up the Geist fonts.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>

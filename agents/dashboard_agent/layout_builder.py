@@ -15,6 +15,7 @@ _COMPARISON_FIELDS = (
 )
 
 
+# Assembles the JSON dashboard payload: KPI cards, insights, and monthly trend series.
 def build_layout(analysis: AnalysisResult, kpis: KPICatalog) -> dict[str, Any]:
     """Builds a JSON-serializable dashboard layout spec (KPI cards + insights panel)."""
     monthly = analysis.trends.get("monthly", {})
@@ -52,4 +53,5 @@ def build_layout(analysis: AnalysisResult, kpis: KPICatalog) -> dict[str, Any]:
         "kpi_cards": kpi_cards,
         "insights": insights,
         "monthly_trends": monthly_trends,
+        "business_domain": kpis.business_domain,
     }

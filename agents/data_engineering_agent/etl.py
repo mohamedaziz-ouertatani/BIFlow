@@ -14,6 +14,7 @@ JOIN_DESCRIPTIONS = {
 }
 
 
+# Dispatches to the domain-specific table join.
 def build_analytical_table(tables: dict[str, pd.DataFrame], business_domain: str) -> pd.DataFrame:
     """Joins cleaned tables into one analytical table for business_domain."""
     if business_domain == "e-commerce":
@@ -23,6 +24,7 @@ def build_analytical_table(tables: dict[str, pd.DataFrame], business_domain: str
     raise KeyError(business_domain)
 
 
+# Joins cleaned Olist tables into one order-item-level analytical table.
 def _build_ecommerce_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Joins cleaned Olist tables into one order-item-level analytical table.
 
@@ -62,6 +64,7 @@ def _build_ecommerce_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return result
 
 
+# Joins cleaned Berka tables into one transaction-level analytical table.
 def _build_banking_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Joins cleaned Berka tables into one transaction-level analytical table.
 
@@ -88,6 +91,7 @@ def _build_banking_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return result
 
 
+# Builds the analytical table, writes it as CSV, and optionally loads it into Postgres.
 def run_etl(
     cleaned_tables: dict[str, pd.DataFrame],
     output_path: str,
@@ -118,6 +122,7 @@ def run_etl(
     return output_path, transformations
 
 
+# Writes a DataFrame into a Postgres table, replacing it if it already exists.
 def load_to_postgres(df: pd.DataFrame, table_name: str, database_url: str) -> None:
     """Loads a DataFrame into a Postgres table, replacing it if it already exists."""
     engine = sqlalchemy.create_engine(database_url)

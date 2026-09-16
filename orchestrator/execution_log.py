@@ -14,9 +14,11 @@ from shared.schemas.execution_trace import ExecutionTrace, TraceEvent
 class ExecutionLogger:
     """Records pipeline execution events into an in-memory ExecutionTrace."""
 
+    # Starts a fresh in-memory trace for this pipeline run.
     def __init__(self, run_id: str) -> None:
         self.trace = ExecutionTrace(run_id=run_id, events=[])
 
+    # Records one pipeline stage transition.
     def log(self, stage: str, status: str, details: dict | None = None) -> None:
         """Record one pipeline stage transition."""
         self.trace.add_event(
@@ -28,6 +30,7 @@ class ExecutionLogger:
             )
         )
 
+    # Renders the trace as a flat list of human-readable strings.
     def as_traceability_log(self) -> list[str]:
         """Render the trace as a flat list of human-readable strings."""
         lines = []

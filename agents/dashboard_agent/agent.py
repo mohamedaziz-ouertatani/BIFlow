@@ -17,12 +17,14 @@ DEFAULT_DASHBOARD_URL = "http://localhost:3000"
 class DashboardAgent:
     """Builds an interactive dashboard from KPIs and analysis insights."""
 
+    # Stores where the layout JSON is written and the URL it's served from.
     def __init__(
         self, layout_path: str = DEFAULT_LAYOUT_PATH, dashboard_url: str = DEFAULT_DASHBOARD_URL
     ) -> None:
         self.layout_path = layout_path
         self.dashboard_url = dashboard_url
 
+    # Builds the layout JSON, writes it to disk, and returns the dashboard spec.
     def run(self, analysis: AnalysisResult, kpis: KPICatalog) -> DashboardSpec:
         """Builds the dashboard layout, writes it for api.py to serve, and returns its spec."""
         layout = build_layout(analysis, kpis)
@@ -37,6 +39,7 @@ class DashboardAgent:
             kpis_shown=[kpi.name for kpi in kpis.kpis],
         )
 
+    # Adds the Auditor's per-KPI explanations into the already-written layout file.
     def attach_audit_report(self, audit: AuditReport) -> None:
         """Enriches the already-written layout with the Auditor's per-KPI explanations.
 

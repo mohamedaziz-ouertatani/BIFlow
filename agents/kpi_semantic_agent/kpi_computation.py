@@ -5,6 +5,7 @@ from typing import Any
 import pandas as pd
 
 
+# Computes every KPI's value per distinct value of the given breakdown dimension.
 def compute_kpi_breakdowns(
     df: pd.DataFrame, dimension_column: str, business_domain: str
 ) -> dict[str, dict[str, Any]]:
@@ -22,6 +23,7 @@ def compute_kpi_breakdowns(
     }
 
 
+# Dispatches to the domain-specific KPI computation.
 def compute_kpis(df: pd.DataFrame, business_domain: str) -> dict[str, Any]:
     """Computes the KPI values for business_domain from the analytical table."""
     if business_domain == "e-commerce":
@@ -31,6 +33,7 @@ def compute_kpis(df: pd.DataFrame, business_domain: str) -> dict[str, Any]:
     raise KeyError(business_domain)
 
 
+# Computes the e-commerce KPI values from the order-item-level analytical table.
 def _compute_ecommerce_kpis(df: pd.DataFrame) -> dict[str, Any]:
     """Computes the e-commerce KPI values from the order-item-level analytical table."""
     non_canceled = df[df["order_status"] != "canceled"]
@@ -64,6 +67,7 @@ def _compute_ecommerce_kpis(df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+# Computes the banking KPI values from the transaction-level analytical table.
 def _compute_banking_kpis(df: pd.DataFrame) -> dict[str, Any]:
     """Computes the banking KPI values from the transaction-level analytical table."""
     credits = df[df["type"] == "PRIJEM"]

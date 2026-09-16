@@ -5,6 +5,7 @@ from shared.schemas.data_contracts import AnalysisResult, CleanedDataset, KPICat
 WARNING_SEVERITIES = {"warning", "critical"}
 
 
+# Checks data quality and insight severities to derive an overall pass/warn/fail status.
 def validate_pipeline_outputs(
     cleaned: CleanedDataset, kpis: KPICatalog, analysis: AnalysisResult
 ) -> str:

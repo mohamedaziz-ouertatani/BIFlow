@@ -30,6 +30,7 @@ class PipelineStageError(Exception):
     a clear error instead of a bare traceback from deep inside an agent.
     """
 
+    # Records which stage failed and formats a message wrapping the original exception.
     def __init__(self, stage: str, original: Exception) -> None:
         self.stage = stage
         super().__init__(f"Pipeline halted: stage '{stage}' failed: {original}")
@@ -50,6 +51,7 @@ class BIFlowOrchestrator:
     the Auditor/XAI agent synthesizes from each stage's own output.
     """
 
+    # Stores output paths/DB connection and clears any previous run's execution log.
     def __init__(
         self,
         analytical_path: str = DEFAULT_OUTPUT_PATH,
@@ -61,6 +63,7 @@ class BIFlowOrchestrator:
         self.database_url = database_url
         self.execution_log: ExecutionLogger | None = None
 
+    # Runs every agent in sequence, halting and re-raising on the first stage failure.
     def run_pipeline(self, raw_dataset: RawDatasetRef) -> AuditReport:
         """Runs the full pipeline end-to-end and returns the final audit report.
 
@@ -79,6 +82,7 @@ class BIFlowOrchestrator:
         dashboard_agent.attach_audit_report(audit)
         return audit
 
+    # Runs one pipeline stage, logging start/success/failure and wrapping errors as PipelineStageError.
     def _run_stage(self, stage: str, fn, *args):
         self.execution_log.log(stage, "started")
         try:
@@ -89,17 +93,21 @@ class BIFlowOrchestrator:
         self.execution_log.log(stage, "succeeded")
         return result
 
+    # Invokes the Data Engineering Agent for this pipeline run.
     def _run_data_engineering(self, raw_dataset: RawDatasetRef) -> CleanedDataset:
         return DataEngineeringAgent(
             output_path=self.analytical_path, database_url=self.database_url
         ).run(raw_dataset)
 
+    # Invokes the KPI/Semantic Agent for this pipeline run.
     def _run_kpi_semantic(self, cleaned: CleanedDataset) -> KPICatalog:
         return KPISemanticAgent().run(cleaned)
 
+    # Invokes the BI Analyst Agent for this pipeline run.
     def _run_bi_analyst(self, cleaned: CleanedDataset, kpis: KPICatalog) -> AnalysisResult:
         return BIAnalystAgent().run(cleaned, kpis)
 
+    # Invokes the Auditor/XAI Agent for this pipeline run.
     def _run_auditor(
         self,
         cleaned: CleanedDataset,

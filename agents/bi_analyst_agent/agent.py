@@ -26,6 +26,7 @@ class BIAnalystAgent:
       colliding with the threshold-based keys.
     """
 
+    # Combines threshold-based trends and real month-over-month trends into one AnalysisResult.
     def run(self, cleaned: CleanedDataset, kpis: KPICatalog) -> AnalysisResult:
         """Analyzes the cleaned dataset and KPI catalog, returning trends + insights."""
         threshold_trends = detect_trends(kpis)

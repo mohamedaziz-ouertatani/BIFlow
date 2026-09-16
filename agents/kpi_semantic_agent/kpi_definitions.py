@@ -81,6 +81,7 @@ _KPIS_BY_DOMAIN = {
 }
 
 
+# Returns the list of KPI definitions relevant to the given business domain.
 def get_kpi_definitions(business_domain: str) -> list[KPIDefinition]:
     """Returns the list of KPI definitions relevant to the given business domain."""
     return _KPIS_BY_DOMAIN[business_domain]

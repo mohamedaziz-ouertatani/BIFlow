@@ -12,6 +12,7 @@ const DIRECTION_ARROW: Record<string, string> = {
   flat: "–",
 };
 
+// Shows the month-over-month direction arrow and percent change for a KPI.
 function ComparisonBadge({ comparison }: { comparison: MonthlyComparison }) {
   const arrow = DIRECTION_ARROW[comparison.direction] ?? "–";
   return (
@@ -34,6 +35,7 @@ type FetchState =
   | { status: "error"; message: string }
   | { status: "ready"; data: DashboardLayout };
 
+// Fetches the latest dashboard layout from the API, mapping HTTP/network outcomes to FetchState.
 async function fetchDashboard(): Promise<FetchState> {
   try {
     const response = await fetch(`${API_URL}/api/dashboard`, { cache: "no-store" });
@@ -50,6 +52,7 @@ async function fetchDashboard(): Promise<FetchState> {
   }
 }
 
+// Formats a KPI value for display: integers as-is, floats to 2 decimals, null as an em dash.
 function formatValue(value: number | string | null): string {
   if (typeof value === "number") {
     return Number.isInteger(value) ? value.toString() : value.toFixed(2);
@@ -57,6 +60,7 @@ function formatValue(value: number | string | null): string {
   return value === null ? "—" : value;
 }
 
+// Top-level dashboard page: polls the API and renders KPI cards, trends, and insights.
 export default function DashboardPage() {
   const [state, setState] = useState<FetchState>({ status: "loading" });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -85,7 +89,12 @@ export default function DashboardPage() {
 
   return (
     <main className={styles.main}>
-      <h1 className={styles.title}>BIFlow Dashboard</h1>
+      <h1 className={styles.title}>
+        BIFlow Dashboard
+        {state.status === "ready" && state.data.business_domain && (
+          <span className={styles.domainBadge}>{state.data.business_domain}</span>
+        )}
+      </h1>
 
       {state.status === "loading" && <p>Loading…</p>}
       {state.status === "no-data" && (

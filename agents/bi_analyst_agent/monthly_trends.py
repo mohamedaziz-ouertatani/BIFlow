@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 
+# Classifies a month-over-month change as increasing, decreasing, or flat.
 def _direction(latest: float, previous: float) -> str:
     if latest > previous:
         return "increasing"
@@ -19,6 +20,7 @@ def _direction(latest: float, previous: float) -> str:
     return "flat"
 
 
+# Builds a trend entry from the last two months of a monthly series.
 def _trend_entry(series: pd.Series) -> dict[str, Any] | None:
     """Builds a trend entry from the last two months of a monthly series."""
     if len(series) < 2:
@@ -44,6 +46,7 @@ def _trend_entry(series: pd.Series) -> dict[str, Any] | None:
 MIN_ORDER_COUNT_RATIO = 0.2
 
 
+# Excludes trailing months with unusually low row counts from the trend series.
 def _complete_months(count_by_month: pd.Series) -> pd.Index:
     """Excludes trailing months whose row count is far below typical volume
     (e.g. a handful of stray rows after the data effectively ends) --
@@ -56,6 +59,7 @@ def _complete_months(count_by_month: pd.Series) -> pd.Index:
     return count_by_month[count_by_month >= threshold].index
 
 
+# Dispatches to the domain-specific monthly trend computation.
 def compute_monthly_trends(analytical_df: pd.DataFrame, business_domain: str) -> dict[str, Any]:
     """Computes month-over-month trends for business_domain from the analytical table."""
     if business_domain == "e-commerce":
@@ -65,6 +69,7 @@ def compute_monthly_trends(analytical_df: pd.DataFrame, business_domain: str) ->
     raise KeyError(business_domain)
 
 
+# Computes month-over-month trends for revenue, order count, and review score.
 def _compute_ecommerce_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, Any]:
     """Computes month-over-month trends for revenue, order count, and review score."""
     df = analytical_df.copy()
@@ -96,6 +101,7 @@ def _compute_ecommerce_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, 
     return trends
 
 
+# Computes month-over-month trends for transaction volume, count, and balance.
 def _compute_banking_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, Any]:
     """Computes month-over-month trends for transaction volume, count, and balance."""
     df = analytical_df.copy()

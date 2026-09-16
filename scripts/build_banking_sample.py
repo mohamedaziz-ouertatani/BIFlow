@@ -18,6 +18,7 @@ SEED = 42
 N_ACCOUNTS = 25
 
 
+# Samples N_ACCOUNTS accounts plus their related rows and writes them as the banking sample dataset.
 def main() -> None:
     account = pd.read_csv(os.path.join(RAW_DIR, "account.csv"), sep=";")
     disp = pd.read_csv(os.path.join(RAW_DIR, "disp.csv"), sep=";")

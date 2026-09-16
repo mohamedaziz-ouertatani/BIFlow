@@ -4,6 +4,7 @@ import styles from "./page.module.css";
 import TrendChart from "./TrendChart";
 import type { Insight, KpiCard, MonthlyTrendPoint } from "./types";
 
+// Expanded panel for a selected KPI: shows its explanation, trend chart, and related insights.
 export default function KpiDetail({
   card,
   trendSeries,

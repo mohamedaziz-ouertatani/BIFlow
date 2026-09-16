@@ -3,6 +3,7 @@
 from shared.schemas.data_contracts import AnalysisResult, KPICatalog
 
 
+# Builds a human-readable explanation string for every KPI and insight.
 def generate_explanations(kpis: KPICatalog, analysis: AnalysisResult) -> dict[str, str]:
     """Generates human-readable explanations for KPIs and insights."""
     explanations = {}

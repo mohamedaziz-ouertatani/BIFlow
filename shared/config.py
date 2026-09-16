@@ -14,6 +14,7 @@ class Settings(BaseModel):
     log_level: str = "INFO"
 
 
+# Loads and returns the shared Settings instance from environment variables.
 def get_settings() -> Settings:
     """Load and return the shared Settings instance from environment variables.
 

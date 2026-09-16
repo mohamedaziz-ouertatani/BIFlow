@@ -60,6 +60,7 @@ class KPICatalog(BaseModel):
     # for KPIs whose KPIDefinition.dimensions lists that dimension. Empty for KPIs
     # or business domains that don't define any breakdown dimensions.
     breakdowns: dict[str, dict[str, dict[str, Any]]] = {}
+    business_domain: str = "e-commerce"
 
 
 class Insight(BaseModel):

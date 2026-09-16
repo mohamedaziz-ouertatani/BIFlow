@@ -13,11 +13,19 @@ import styles from "./page.module.css";
 import type { MonthlyTrendPoint } from "./types";
 
 const METRIC_LABELS: Record<string, string> = {
+  // e-commerce
   total_revenue: "Revenue",
   order_count: "Order volume",
   average_review_score: "Review score",
+  // banking
+  total_transaction_volume: "Transaction volume",
+  average_transaction_value: "Average transaction value",
+  transaction_count: "Transaction count",
+  average_account_balance: "Average account balance",
+  loan_good_standing_rate: "Loan good standing rate",
 };
 
+// Renders a single metric's month-over-month values as a line chart.
 export default function TrendChart({
   metric,
   series,

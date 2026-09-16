@@ -21,6 +21,7 @@ SEVERITY_BY_STATUS = {
 }
 
 
+# Converts each threshold evaluation (healthy/concerning) into a human-readable Insight.
 def generate_insights(kpis: KPICatalog, trends: dict[str, Any]) -> list[Insight]:
     """Turns each threshold evaluation in trends into a human-readable Insight."""
     insights = []
@@ -61,6 +62,7 @@ SEVERITY_BY_DIRECTION = {
 }
 
 
+# Converts each month-over-month trend into a human-readable Insight.
 def generate_monthly_trend_insights(monthly_trends: dict[str, Any]) -> list[Insight]:
     """Turns each real month-over-month trend into a human-readable Insight."""
     insights = []

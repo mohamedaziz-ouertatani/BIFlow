@@ -17,6 +17,7 @@ THRESHOLDS = {
 }
 
 
+# Flags each threshold-backed KPI as healthy or concerning against its fixed threshold.
 def detect_trends(kpis: KPICatalog) -> dict[str, Any]:
     """Evaluates threshold-backed KPIs and flags each as healthy or concerning."""
     trends = {}

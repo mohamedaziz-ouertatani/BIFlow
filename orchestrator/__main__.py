@@ -15,6 +15,7 @@ from shared.config import get_settings
 from shared.schemas.data_contracts import AuditReport, RawDatasetRef
 
 
+# Parses CLI arguments for running the pipeline (dataset path, domain, output overrides).
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="python -m orchestrator", description="Run the BIFlow pipeline end-to-end."
@@ -34,6 +35,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+# Prints the final AuditReport's validation status, traceability log, and explanations.
 def print_report(report: AuditReport) -> None:
     print(f"validation_status: {report.validation_status}")
     print()
@@ -46,6 +48,7 @@ def print_report(report: AuditReport) -> None:
         print(f"  {subject}: {explanation}")
 
 
+# CLI entrypoint: parses args, runs the pipeline, prints the report, and returns an exit code.
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv if argv is not None else sys.argv[1:])
 

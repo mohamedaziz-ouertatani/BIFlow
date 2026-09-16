@@ -12,6 +12,7 @@ DOMAIN_DATETIME_FORMATS = {
 }
 
 
+# Drops invalid order_items prices and fills missing product categories, e-commerce only.
 def _apply_ecommerce_rules(
     name: str, df: pd.DataFrame, transformations: list[str]
 ) -> pd.DataFrame:
@@ -36,6 +37,7 @@ def _apply_ecommerce_rules(
     return df
 
 
+# Normalizes the legacy 'VYBER' transaction type to 'VYDAJ', banking only.
 def _apply_banking_rules(name: str, df: pd.DataFrame, transformations: list[str]) -> pd.DataFrame:
     if name == "trans" and "type" in df.columns:
         n_bad = int((df["type"] == "VYBER").sum())
@@ -48,6 +50,7 @@ def _apply_banking_rules(name: str, df: pd.DataFrame, transformations: list[str]
     return df
 
 
+# Deduplicates rows, parses date columns, and applies domain-specific cleaning rules to every table.
 def clean_tables(
     tables: dict[str, pd.DataFrame], business_domain: str
 ) -> tuple[dict[str, pd.DataFrame], list[str]]:

@@ -15,6 +15,7 @@ from agents.dashboard_agent.agent import DEFAULT_LAYOUT_PATH
 DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
 
+# Builds the FastAPI app with CORS and the health/dashboard routes.
 def create_app(
     layout_path: str | None = None, allowed_origins: list[str] | None = None
 ) -> FastAPI:
@@ -35,10 +36,12 @@ def create_app(
         allow_headers=["*"],
     )
 
+    # Simple liveness check for the API.
     @app.get("/api/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    # Serves the latest dashboard layout JSON written by DashboardAgent.
     @app.get("/api/dashboard")
     def dashboard() -> dict:
         if not os.path.exists(resolved_layout_path):

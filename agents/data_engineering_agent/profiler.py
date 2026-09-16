@@ -37,6 +37,7 @@ CSV_SEP_BY_DOMAIN = {
 }
 
 
+# Loads every raw table for the given business domain from disk.
 def load_all_tables(dataset_dir: str, business_domain: str) -> dict[str, pd.DataFrame]:
     """Loads every table for business_domain from dataset_dir, keyed by logical table name."""
     filenames = TABLE_FILENAMES_BY_DOMAIN[business_domain]
@@ -47,6 +48,7 @@ def load_all_tables(dataset_dir: str, business_domain: str) -> dict[str, pd.Data
     }
 
 
+# Profiles a single table: row/column counts, types, missing values, duplicates, anomalies.
 def profile_table(name: str, df: pd.DataFrame) -> dict[str, Any]:
     """Profiles a single table: row/column counts, types, missing values, duplicates, anomalies."""
     n_rows = len(df)
@@ -74,6 +76,7 @@ def profile_table(name: str, df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+# Profiles every table in the raw dataset and aggregates results into one ProfilingReport.
 def profile_dataset(raw_dataset: RawDatasetRef) -> ProfilingReport:
     """Profiles every table in raw_dataset.dataset_path and aggregates into one ProfilingReport."""
     tables = load_all_tables(raw_dataset.dataset_path, raw_dataset.business_domain)

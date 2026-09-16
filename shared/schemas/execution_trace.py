@@ -26,6 +26,7 @@ class ExecutionTrace(BaseModel):
     run_id: str
     events: list[TraceEvent]
 
+    # Appends an event to the trace (in-memory for the run's duration).
     def add_event(self, event: TraceEvent) -> None:
         """Append an event to the trace (in-memory for the run's duration)."""
         self.events.append(event)

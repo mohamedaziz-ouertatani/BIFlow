@@ -22,10 +22,12 @@ class DataEngineeringAgent:
     aren't coupled to a live database.
     """
 
+    # Stores the CSV output path and optional Postgres connection string.
     def __init__(self, output_path: str = DEFAULT_OUTPUT_PATH, database_url: str | None = None) -> None:
         self.output_path = output_path
         self.database_url = database_url
 
+    # Runs profiling, cleaning, and ETL, returning the CleanedDataset for downstream agents.
     def run(self, raw_dataset: RawDatasetRef) -> CleanedDataset:
         """Runs profiling, cleaning, and ETL on the given raw dataset."""
         profiling_report = profile_dataset(raw_dataset)
