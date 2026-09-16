@@ -5,6 +5,7 @@ import json
 from fastapi.testclient import TestClient
 
 from agents.dashboard_agent.api import create_app
+from agents.dashboard_agent.nl_query import OllamaTimeoutError, OllamaUnavailableError
 
 
 def _write_layout(tmp_path, layout):
@@ -47,3 +48,57 @@ def test_dashboard_endpoint_returns_404_when_no_layout_exists(tmp_path):
     response = client.get("/api/dashboard")
 
     assert response.status_code == 404
+
+
+def test_query_endpoint_returns_answer_on_success(tmp_path, monkeypatch):
+    layout_path = _write_layout(
+        tmp_path,
+        {"kpi_cards": [], "insights": [], "monthly_trends": {}},
+    )
+    monkeypatch.setattr(
+        "agents.dashboard_agent.api.generate_answer",
+        lambda question, layout: "Revenue is healthy.",
+    )
+    client = TestClient(create_app(layout_path=layout_path))
+
+    response = client.post("/api/query", json={"question": "How is revenue?"})
+
+    assert response.status_code == 200
+    assert response.json() == {"answer": "Revenue is healthy."}
+
+
+def test_query_endpoint_returns_404_when_no_layout_exists(tmp_path):
+    client = TestClient(create_app(layout_path=str(tmp_path / "missing.json")))
+
+    response = client.post("/api/query", json={"question": "How is revenue?"})
+
+    assert response.status_code == 404
+
+
+def test_query_endpoint_returns_503_when_ollama_unavailable(tmp_path, monkeypatch):
+    layout_path = _write_layout(tmp_path, {"kpi_cards": [], "insights": [], "monthly_trends": {}})
+
+    def _raise(question, layout):
+        raise OllamaUnavailableError("connection refused")
+
+    monkeypatch.setattr("agents.dashboard_agent.api.generate_answer", _raise)
+    client = TestClient(create_app(layout_path=layout_path))
+
+    response = client.post("/api/query", json={"question": "How is revenue?"})
+
+    assert response.status_code == 503
+    assert "Ollama" in response.json()["detail"]
+
+
+def test_query_endpoint_returns_504_when_ollama_times_out(tmp_path, monkeypatch):
+    layout_path = _write_layout(tmp_path, {"kpi_cards": [], "insights": [], "monthly_trends": {}})
+
+    def _raise(question, layout):
+        raise OllamaTimeoutError("timed out")
+
+    monkeypatch.setattr("agents.dashboard_agent.api.generate_answer", _raise)
+    client = TestClient(create_app(layout_path=layout_path))
+
+    response = client.post("/api/query", json={"question": "How is revenue?"})
+
+    assert response.status_code == 504
