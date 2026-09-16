@@ -25,6 +25,18 @@
   opacity: 0.75;
 }
 
+.reportLink {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: #2f80ed;
+  text-decoration: none;
+}
+
+.reportLink:hover {
+  text-decoration: underline;
+}
+
 .subheading {
   font-size: 1.25rem;
   font-weight: 600;

@@ -134,6 +134,20 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders a PDF report download link once the dashboard has loaded", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+
+    const link = (await screen.findByText("Download PDF report")) as HTMLAnchorElement;
+    expect(link.closest("a")).toHaveAttribute("href", "http://localhost:8000/api/report.pdf");
+  });
+
   it("renders the query box once the dashboard has loaded", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [],

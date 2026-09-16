@@ -50,6 +50,34 @@ def test_dashboard_endpoint_returns_404_when_no_layout_exists(tmp_path):
     assert response.status_code == 404
 
 
+def test_report_endpoint_returns_pdf(tmp_path):
+    layout_path = _write_layout(
+        tmp_path,
+        {
+            "kpi_cards": [{"name": "total_revenue", "label": "Total revenue", "value": 123.45}],
+            "insights": [],
+            "monthly_trends": {},
+        },
+    )
+    client = TestClient(create_app(layout_path=layout_path))
+
+    response = client.get("/api/report.pdf")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert "attachment" in response.headers["content-disposition"]
+    assert response.content.startswith(b"%PDF")
+    assert b"Total revenue" in response.content
+
+
+def test_report_endpoint_returns_404_when_no_layout_exists(tmp_path):
+    client = TestClient(create_app(layout_path=str(tmp_path / "missing.json")))
+
+    response = client.get("/api/report.pdf")
+
+    assert response.status_code == 404
+
+
 def test_query_endpoint_returns_answer_on_success(tmp_path, monkeypatch):
     layout_path = _write_layout(
         tmp_path,

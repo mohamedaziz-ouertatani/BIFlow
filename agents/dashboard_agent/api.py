@@ -7,7 +7,7 @@ instead of a Python process re-rendering server-side on every load.
 import json
 import os
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -17,6 +17,7 @@ from agents.dashboard_agent.nl_query import (
     OllamaUnavailableError,
     generate_answer,
 )
+from agents.dashboard_agent.report import build_pdf
 
 DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
@@ -54,6 +55,20 @@ def create_app(
             raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
         with open(resolved_layout_path) as f:
             return json.load(f)
+
+    # Serves a downloadable PDF snapshot of the current dashboard layout.
+    @app.get("/api/report.pdf")
+    def report() -> Response:
+        if not os.path.exists(resolved_layout_path):
+            raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
+        with open(resolved_layout_path) as f:
+            layout = json.load(f)
+        pdf_bytes = build_pdf(layout)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=biflow_report.pdf"},
+        )
 
     class QueryRequest(BaseModel):
         question: str

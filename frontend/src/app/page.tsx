@@ -97,6 +97,16 @@ export default function DashboardPage() {
         )}
       </h1>
 
+      {state.status === "ready" && (
+        <a
+          className={styles.reportLink}
+          href={`${API_URL}/api/report.pdf`}
+          download="biflow_report.pdf"
+        >
+          Download PDF report
+        </a>
+      )}
+
       {state.status === "loading" && <p>Loading…</p>}
       {state.status === "no-data" && (
         <p>No dashboard data yet — run the pipeline first.</p>
