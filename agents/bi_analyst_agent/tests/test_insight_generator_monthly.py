@@ -57,6 +57,41 @@ def test_generate_monthly_trend_insights_rounds_long_float_values():
     assert "4.29" in insights[0].description
 
 
+def test_generate_monthly_trend_insights_produces_critical_for_anomaly():
+    monthly_trends = {
+        "total_revenue": {
+            "previous_month": "2018-04",
+            "latest_month": "2018-05",
+            "previous_value": 100.0,
+            "latest_value": 500.0,
+            "pct_change": 400.0,
+            "direction": "increasing",
+            "is_anomaly": True,
+            "z_score": 3.27,
+        }
+    }
+    insights = generate_monthly_trend_insights(monthly_trends)
+    assert insights[0].severity == "critical"
+    assert "3.27" in insights[0].description
+
+
+def test_generate_monthly_trend_insights_non_anomaly_keeps_normal_severity():
+    monthly_trends = {
+        "total_revenue": {
+            "previous_month": "2018-01",
+            "latest_month": "2018-02",
+            "previous_value": 100.0,
+            "latest_value": 150.0,
+            "pct_change": 50.0,
+            "direction": "increasing",
+            "is_anomaly": False,
+            "z_score": None,
+        }
+    }
+    insights = generate_monthly_trend_insights(monthly_trends)
+    assert insights[0].severity == "info"
+
+
 def test_generate_monthly_trend_insights_uses_named_label_for_transaction_volume():
     monthly_trends = {
         "total_transaction_volume": {

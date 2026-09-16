@@ -76,12 +76,21 @@ def generate_monthly_trend_insights(monthly_trends: dict[str, Any]) -> list[Insi
             f"to {latest_value} in {trend['latest_month']} "
             f"({trend['pct_change']:+.1f}%)."
         )
+        is_anomaly = trend.get("is_anomaly", False)
+        if is_anomaly:
+            description += (
+                f" This is unusual: {trend['z_score']} standard deviations from "
+                "the typical range for this metric."
+            )
+            severity = "critical"
+        else:
+            severity = SEVERITY_BY_DIRECTION.get(trend["direction"], "info")
         insights.append(
             Insight(
                 title=title,
                 description=description,
                 related_kpi=metric_name,
-                severity=SEVERITY_BY_DIRECTION.get(trend["direction"], "info"),
+                severity=severity,
             )
         )
     return insights

@@ -20,6 +20,25 @@ def _direction(latest: float, previous: float) -> str:
     return "flat"
 
 
+MIN_HISTORY_FOR_ANOMALY = 3
+ANOMALY_Z_SCORE_THRESHOLD = 2.0
+
+
+# Flags the latest month as anomalous if it's far outside the range of prior months.
+def _detect_anomaly(series: pd.Series) -> tuple[bool, float | None]:
+    """Computes a z-score for the latest value against the mean/stdev of
+    prior months. Needs at least MIN_HISTORY_FOR_ANOMALY prior points --
+    with fewer, there isn't enough history to know what's normal."""
+    history = series.iloc[:-1]
+    if len(history) < MIN_HISTORY_FOR_ANOMALY:
+        return False, None
+    std = float(history.std(ddof=0))
+    if std == 0:
+        return False, None
+    z_score = (float(series.iloc[-1]) - float(history.mean())) / std
+    return abs(z_score) > ANOMALY_Z_SCORE_THRESHOLD, round(z_score, 2)
+
+
 # Builds a trend entry from the last two months of a monthly series.
 def _trend_entry(series: pd.Series) -> dict[str, Any] | None:
     """Builds a trend entry from the last two months of a monthly series."""
@@ -30,6 +49,7 @@ def _trend_entry(series: pd.Series) -> dict[str, Any] | None:
     pct_change = (
         (latest_value - previous_value) / previous_value * 100 if previous_value else 0.0
     )
+    is_anomaly, z_score = _detect_anomaly(series)
     return {
         "previous_month": previous_month,
         "latest_month": latest_month,
@@ -40,6 +60,8 @@ def _trend_entry(series: pd.Series) -> dict[str, Any] | None:
         "series": [
             {"month": month, "value": float(value)} for month, value in series.items()
         ],
+        "is_anomaly": is_anomaly,
+        "z_score": z_score,
     }
 
 

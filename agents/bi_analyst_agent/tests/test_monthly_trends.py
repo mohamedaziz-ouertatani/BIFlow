@@ -29,6 +29,8 @@ def test_compute_monthly_trends_detects_increasing_revenue():
             {"month": "2018-01", "value": 100.0},
             {"month": "2018-02", "value": 150.0},
         ],
+        "is_anomaly": False,
+        "z_score": None,
     }
 
 
@@ -147,6 +149,8 @@ def test_compute_monthly_trends_banking_detects_increasing_transaction_volume():
             {"month": "2018-01", "value": 100.0},
             {"month": "2018-02", "value": 150.0},
         ],
+        "is_anomaly": False,
+        "z_score": None,
     }
 
 
@@ -178,6 +182,47 @@ def test_compute_monthly_trends_banking_averages_balance_per_month():
     trends = compute_monthly_trends(df, "banking")
     assert trends["average_account_balance"]["previous_value"] == 500.0
     assert trends["average_account_balance"]["latest_value"] == 900.0
+
+
+def test_compute_monthly_trends_flags_anomaly_far_outside_historical_range():
+    """4 stable months followed by a month that spikes far outside the
+    historical range should be flagged as an anomaly with a z-score."""
+    df = pd.DataFrame(
+        {
+            "order_id": ["o1", "o2", "o3", "o4", "o5"],
+            "order_purchase_timestamp": pd.to_datetime(
+                ["2018-01-05", "2018-02-05", "2018-03-05", "2018-04-05", "2018-05-05"]
+            ),
+            "order_status": ["delivered"] * 5,
+            "price": [100.0, 105.0, 95.0, 100.0, 500.0],
+            "review_score": [5, 5, 5, 5, 5],
+        }
+    )
+    trends = compute_monthly_trends(df, "e-commerce")
+    revenue_trend = trends["total_revenue"]
+    assert revenue_trend["is_anomaly"] is True
+    assert revenue_trend["z_score"] is not None
+    assert abs(revenue_trend["z_score"]) > 2
+
+
+def test_compute_monthly_trends_no_anomaly_with_insufficient_history():
+    """Fewer than 3 prior months isn't enough to judge normal variance, so
+    the latest month should never be flagged regardless of its value."""
+    df = pd.DataFrame(
+        {
+            "order_id": ["o1", "o2", "o3"],
+            "order_purchase_timestamp": pd.to_datetime(
+                ["2018-01-05", "2018-02-05", "2018-03-05"]
+            ),
+            "order_status": ["delivered"] * 3,
+            "price": [100.0, 100.0, 900.0],
+            "review_score": [5, 5, 5],
+        }
+    )
+    trends = compute_monthly_trends(df, "e-commerce")
+    revenue_trend = trends["total_revenue"]
+    assert revenue_trend["is_anomaly"] is False
+    assert revenue_trend["z_score"] is None
 
 
 def test_compute_monthly_trends_banking_omits_metrics_with_fewer_than_two_months():
