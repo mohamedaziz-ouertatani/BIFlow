@@ -161,6 +161,22 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Ask the dashboard")).toBeInTheDocument();
   });
 
+  it("hides the ask panel when the sidebar toggle is clicked", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    await screen.findByText("Ask the dashboard");
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide ask panel" }));
+
+    expect(screen.getByRole("button", { name: "Ask the dashboard" })).toBeInTheDocument();
+  });
+
   it("polls the API again after the interval elapses", async () => {
     jest.useFakeTimers({ advanceTimers: true });
     const layout: DashboardLayout = {

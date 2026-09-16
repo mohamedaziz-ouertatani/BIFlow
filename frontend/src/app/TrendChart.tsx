@@ -43,11 +43,18 @@ export default function TrendChart({
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
           <XAxis dataKey="month" tick={{ fontSize: 11 }} minTickGap={20} />
           <YAxis tick={{ fontSize: 11 }} width={48} />
-          <Tooltip />
+          <Tooltip
+            contentStyle={{
+              background: "var(--surface-raised)",
+              border: "1px solid var(--border-strong)",
+              borderRadius: 8,
+              fontSize: 12,
+            }}
+          />
           <Line
             type="monotone"
             dataKey="value"
-            stroke="#2f80ed"
+            stroke="var(--accent)"
             strokeWidth={2}
             dot={false}
           />
