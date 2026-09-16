@@ -15,3 +15,16 @@ def test_get_kpi_definitions_returns_five_ecommerce_kpis():
         "average_review_score",
         "on_time_delivery_rate",
     }
+
+
+def test_get_kpi_definitions_returns_five_banking_kpis():
+    definitions = get_kpi_definitions("banking")
+    assert all(isinstance(d, KPIDefinition) for d in definitions)
+    names = {d.name for d in definitions}
+    assert names == {
+        "total_transaction_volume",
+        "average_transaction_value",
+        "transaction_count",
+        "average_account_balance",
+        "loan_good_standing_rate",
+    }

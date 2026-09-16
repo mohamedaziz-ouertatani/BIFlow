@@ -38,8 +38,42 @@ _ECOMMERCE_KPIS = [
     ),
 ]
 
+_BANKING_KPIS = [
+    KPIDefinition(
+        name="total_transaction_volume",
+        formula="sum(amount) where type == 'PRIJEM'",
+        description="Total value of credit transactions.",
+        dimensions=[],
+    ),
+    KPIDefinition(
+        name="average_transaction_value",
+        formula="total_transaction_volume / count(distinct trans_id where type == 'PRIJEM')",
+        description="Average value of a credit transaction.",
+        dimensions=[],
+    ),
+    KPIDefinition(
+        name="transaction_count",
+        formula="count(distinct trans_id)",
+        description="Total number of transactions, both credits and debits.",
+        dimensions=[],
+    ),
+    KPIDefinition(
+        name="average_account_balance",
+        formula="mean(balance)",
+        description="Average account balance across all transactions.",
+        dimensions=[],
+    ),
+    KPIDefinition(
+        name="loan_good_standing_rate",
+        formula="count(loan_status in ('A','C')) / count(loan_status is not null)",
+        description="Share of loans that are in good standing (finished without issue, or running normally).",
+        dimensions=[],
+    ),
+]
+
 _KPIS_BY_DOMAIN = {
     "e-commerce": _ECOMMERCE_KPIS,
+    "banking": _BANKING_KPIS,
 }
 
 
