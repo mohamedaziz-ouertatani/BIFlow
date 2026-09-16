@@ -134,6 +134,19 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders the query box once the dashboard has loaded", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+
+    expect(await screen.findByText("Ask the dashboard")).toBeInTheDocument();
+  });
+
   it("polls the API again after the interval elapses", async () => {
     jest.useFakeTimers({ advanceTimers: true });
     const layout: DashboardLayout = {

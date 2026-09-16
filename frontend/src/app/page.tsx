@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import KpiDetail from "./KpiDetail";
 import styles from "./page.module.css";
+import QueryBox from "./QueryBox";
 import TrendChart from "./TrendChart";
 import type { DashboardLayout, MonthlyComparison } from "./types";
 
@@ -163,6 +164,8 @@ export default function DashboardPage() {
               </ul>
             </section>
           )}
+
+          <QueryBox />
 
           {lastUpdated && (
             <p className={styles.lastUpdated}>
