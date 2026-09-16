@@ -70,3 +70,5 @@ pytest tests/
 - [x] Load the analytical table into Postgres (opt-in, see above)
 - [ ] Revisit cleaning rules once run against the full dataset in `data/raw/olist`
   (the sample may not surface every data-quality issue)
+- [x] Support a second business domain (`banking`, Berka dataset) — see
+  `docs/superpowers/specs/2026-09-16-multi-domain-banking-design.md`

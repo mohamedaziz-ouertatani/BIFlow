@@ -62,3 +62,26 @@ def test_agent_run_loads_into_postgres_when_database_url_given(tmp_path):
             sqlalchemy.text("SELECT COUNT(*) FROM orders_analytical")
         ).scalar()
     assert count > 0
+
+
+BANKING_SAMPLE_DIR = "data/sample/banking"
+
+
+def test_agent_run_produces_cleaned_dataset_from_sample_banking(tmp_path):
+    output_path = str(tmp_path / "banking_analytical.csv")
+    agent = DataEngineeringAgent(output_path=output_path)
+    raw = RawDatasetRef(
+        dataset_path=BANKING_SAMPLE_DIR, dataset_name="berka_banking", business_domain="banking"
+    )
+
+    result = agent.run(raw)
+
+    assert isinstance(result, CleanedDataset)
+    assert result.dataset_path == output_path
+    assert result.data_quality_report.n_rows > 0
+    assert len(result.transformations_applied) > 0
+
+    written = pd.read_csv(output_path)
+    assert "trans_id" in written.columns
+    assert "region" in written.columns
+    assert len(written) > 0

@@ -55,3 +55,12 @@ def test_generate_insights_returns_empty_list_when_no_trends():
     kpis = _kpi_catalog(total_revenue=1000.0)
     insights = generate_insights(kpis, {})
     assert insights == []
+
+
+def test_generate_insights_produces_named_title_for_concerning_loan_good_standing_rate():
+    kpis = _kpi_catalog(loan_good_standing_rate=0.80)
+    trends = {
+        "loan_good_standing_rate": {"value": 0.80, "threshold": 0.85, "status": "concerning"}
+    }
+    insights = generate_insights(kpis, trends)
+    assert insights[0].title == "Loan default rate above target"

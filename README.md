@@ -103,6 +103,8 @@ Open **http://localhost:3000**.
 - `python -m orchestrator data/raw/olist e-commerce` — run against the full
   dataset instead of the 500-order sample (needs `data/raw/olist/`
   populated with the raw CSVs — gitignored, not committed)
+- `python -m orchestrator data/sample/banking banking --no-postgres` — run
+  the pipeline against the banking domain (Berka dataset sample)
 - `pytest` — run the Python test suite
 - `cd frontend && npm test` — run the frontend test suite
 - Drop `--no-postgres` to also load results into Postgres

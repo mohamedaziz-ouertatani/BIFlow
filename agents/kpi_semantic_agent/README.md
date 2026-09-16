@@ -36,3 +36,5 @@ pytest tests/
 - [x] Thread `business_domain` through the shared contract (`CleanedDataset`)
   instead of defaulting it on the agent's constructor
 - [ ] Add category/state KPI breakdowns (see `docs/kpi_catalog.md`)
+- [x] Support a second business domain (`banking`, Berka dataset) — see
+  `docs/superpowers/specs/2026-09-16-multi-domain-banking-design.md`

@@ -17,7 +17,7 @@ def test_compute_monthly_trends_detects_increasing_revenue():
             "review_score": [5, 4, 5],
         }
     )
-    trends = compute_monthly_trends(df)
+    trends = compute_monthly_trends(df, "e-commerce")
     assert trends["total_revenue"] == {
         "previous_month": "2018-01",
         "latest_month": "2018-02",
@@ -44,7 +44,7 @@ def test_compute_monthly_trends_includes_full_series_for_charting():
             "review_score": [5, 4, 3],
         }
     )
-    trends = compute_monthly_trends(df)
+    trends = compute_monthly_trends(df, "e-commerce")
     assert trends["total_revenue"]["series"] == [
         {"month": "2018-01", "value": 50.0},
         {"month": "2018-02", "value": 100.0},
@@ -62,7 +62,7 @@ def test_compute_monthly_trends_detects_decreasing_review_score():
             "review_score": [5, 2],
         }
     )
-    trends = compute_monthly_trends(df)
+    trends = compute_monthly_trends(df, "e-commerce")
     assert trends["average_review_score"]["direction"] == "decreasing"
     assert trends["average_review_score"]["previous_value"] == 5.0
     assert trends["average_review_score"]["latest_value"] == 2.0
@@ -80,7 +80,7 @@ def test_compute_monthly_trends_counts_distinct_orders_per_month_not_items():
             "review_score": [5, 5, 4],
         }
     )
-    trends = compute_monthly_trends(df)
+    trends = compute_monthly_trends(df, "e-commerce")
     assert trends["order_count"]["previous_value"] == 1.0
     assert trends["order_count"]["latest_value"] == 1.0
 
@@ -105,7 +105,7 @@ def test_compute_monthly_trends_excludes_trailing_near_empty_month():
             "review_score": [5] * 21,
         }
     )
-    trends = compute_monthly_trends(df)
+    trends = compute_monthly_trends(df, "e-commerce")
     assert trends["order_count"]["previous_month"] == "2018-01"
     assert trends["order_count"]["latest_month"] == "2018-02"
     assert trends["order_count"]["latest_value"] == 10.0
@@ -121,5 +121,74 @@ def test_compute_monthly_trends_omits_metrics_with_fewer_than_two_months():
             "review_score": [5],
         }
     )
-    trends = compute_monthly_trends(df)
+    trends = compute_monthly_trends(df, "e-commerce")
+    assert trends == {}
+
+
+def test_compute_monthly_trends_banking_detects_increasing_transaction_volume():
+    df = pd.DataFrame(
+        {
+            "trans_id": [1, 2, 3],
+            "date": pd.to_datetime(["2018-01-05", "2018-01-10", "2018-02-05"]),
+            "type": ["PRIJEM", "PRIJEM", "PRIJEM"],
+            "amount": [50.0, 50.0, 150.0],
+            "balance": [500.0, 550.0, 700.0],
+        }
+    )
+    trends = compute_monthly_trends(df, "banking")
+    assert trends["total_transaction_volume"] == {
+        "previous_month": "2018-01",
+        "latest_month": "2018-02",
+        "previous_value": 100.0,
+        "latest_value": 150.0,
+        "pct_change": 50.0,
+        "direction": "increasing",
+        "series": [
+            {"month": "2018-01", "value": 100.0},
+            {"month": "2018-02", "value": 150.0},
+        ],
+    }
+
+
+def test_compute_monthly_trends_banking_counts_distinct_transactions_per_month():
+    df = pd.DataFrame(
+        {
+            "trans_id": [1, 2, 3],
+            "date": pd.to_datetime(["2018-01-05", "2018-01-06", "2018-02-05"]),
+            "type": ["PRIJEM", "VYDAJ", "PRIJEM"],
+            "amount": [50.0, 20.0, 30.0],
+            "balance": [500.0, 480.0, 510.0],
+        }
+    )
+    trends = compute_monthly_trends(df, "banking")
+    assert trends["transaction_count"]["previous_value"] == 2.0
+    assert trends["transaction_count"]["latest_value"] == 1.0
+
+
+def test_compute_monthly_trends_banking_averages_balance_per_month():
+    df = pd.DataFrame(
+        {
+            "trans_id": [1, 2, 3],
+            "date": pd.to_datetime(["2018-01-05", "2018-01-06", "2018-02-05"]),
+            "type": ["PRIJEM", "PRIJEM", "PRIJEM"],
+            "amount": [50.0, 50.0, 50.0],
+            "balance": [400.0, 600.0, 900.0],
+        }
+    )
+    trends = compute_monthly_trends(df, "banking")
+    assert trends["average_account_balance"]["previous_value"] == 500.0
+    assert trends["average_account_balance"]["latest_value"] == 900.0
+
+
+def test_compute_monthly_trends_banking_omits_metrics_with_fewer_than_two_months():
+    df = pd.DataFrame(
+        {
+            "trans_id": [1],
+            "date": pd.to_datetime(["2018-01-05"]),
+            "type": ["PRIJEM"],
+            "amount": [50.0],
+            "balance": [500.0],
+        }
+    )
+    trends = compute_monthly_trends(df, "banking")
     assert trends == {}

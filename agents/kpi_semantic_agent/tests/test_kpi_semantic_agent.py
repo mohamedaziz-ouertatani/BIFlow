@@ -44,9 +44,33 @@ def test_agent_run_uses_business_domain_from_cleaned_dataset_not_a_constructor_d
             n_rows=0, n_columns=0, column_types={}, missing_values={}, duplicate_rows=0, anomalies=[]
         ),
         transformations_applied=[],
-        business_domain="banking",
+        business_domain="retail",
     )
     with pytest.raises(KeyError):
-        # "banking" has no KPI definitions yet -- this proves business_domain
-        # was actually read from `cleaned`, not defaulted to "e-commerce".
+        # "retail" has no KPI definitions -- this proves business_domain was
+        # actually read from `cleaned`, not defaulted to "e-commerce".
         KPISemanticAgent().run(cleaned)
+
+
+BANKING_SAMPLE_DIR = "data/sample/banking"
+
+
+def test_agent_run_computes_banking_kpi_catalog_from_cleaned_dataset(tmp_path):
+    analytical_path = str(tmp_path / "banking_analytical.csv")
+    raw = RawDatasetRef(
+        dataset_path=BANKING_SAMPLE_DIR, dataset_name="berka_banking", business_domain="banking"
+    )
+    cleaned = DataEngineeringAgent(output_path=analytical_path).run(raw)
+
+    agent = KPISemanticAgent()
+    result = agent.run(cleaned)
+
+    assert isinstance(result, KPICatalog)
+    assert {kpi.name for kpi in result.kpis} == {
+        "total_transaction_volume",
+        "average_transaction_value",
+        "transaction_count",
+        "average_account_balance",
+        "loan_good_standing_rate",
+    }
+    assert result.computed_values["transaction_count"] > 0

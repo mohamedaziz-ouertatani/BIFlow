@@ -30,10 +30,13 @@ class DataEngineeringAgent:
         """Runs profiling, cleaning, and ETL on the given raw dataset."""
         profiling_report = profile_dataset(raw_dataset)
 
-        tables = load_all_tables(raw_dataset.dataset_path)
-        cleaned_tables, clean_transformations = clean_tables(tables)
+        tables = load_all_tables(raw_dataset.dataset_path, raw_dataset.business_domain)
+        cleaned_tables, clean_transformations = clean_tables(tables, raw_dataset.business_domain)
         output_path, etl_transformations = run_etl(
-            cleaned_tables, self.output_path, database_url=self.database_url
+            cleaned_tables,
+            self.output_path,
+            raw_dataset.business_domain,
+            database_url=self.database_url,
         )
 
         return CleanedDataset(
