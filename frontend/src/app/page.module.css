@@ -179,3 +179,56 @@
   font-size: 0.8rem;
   opacity: 0.6;
 }
+
+.queryHistory {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.queryTurn {
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.queryQuestion {
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+}
+
+.queryAnswer {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.queryForm {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.queryInput {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  border-radius: 6px;
+  font: inherit;
+  color: inherit;
+  background: none;
+}
+
+.queryButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(47, 128, 237, 0.6);
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.queryButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
