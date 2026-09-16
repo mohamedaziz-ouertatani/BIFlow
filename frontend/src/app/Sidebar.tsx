@@ -6,6 +6,7 @@ import styles from "./page.module.css";
 const NAV_SECTIONS = [
   { id: "overview-section", label: "Overview" },
   { id: "trends-section", label: "Trends" },
+  { id: "breakdowns-section", label: "Breakdowns" },
   { id: "insights-section", label: "Insights" },
 ];
 

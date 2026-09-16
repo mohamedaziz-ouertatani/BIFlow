@@ -42,30 +42,32 @@ _ECOMMERCE_KPIS = [
     ),
 ]
 
+_REGION_BREAKDOWN = ["region"]
+
 _BANKING_KPIS = [
     KPIDefinition(
         name="total_transaction_volume",
         formula="sum(amount) where type == 'PRIJEM'",
         description="Total value of credit transactions.",
-        dimensions=[],
+        dimensions=_REGION_BREAKDOWN,
     ),
     KPIDefinition(
         name="average_transaction_value",
         formula="total_transaction_volume / count(distinct trans_id where type == 'PRIJEM')",
         description="Average value of a credit transaction.",
-        dimensions=[],
+        dimensions=_REGION_BREAKDOWN,
     ),
     KPIDefinition(
         name="transaction_count",
         formula="count(distinct trans_id)",
         description="Total number of transactions, both credits and debits.",
-        dimensions=[],
+        dimensions=_REGION_BREAKDOWN,
     ),
     KPIDefinition(
         name="average_account_balance",
         formula="mean(balance)",
         description="Average account balance across all transactions.",
-        dimensions=[],
+        dimensions=_REGION_BREAKDOWN,
     ),
     KPIDefinition(
         name="loan_good_standing_rate",

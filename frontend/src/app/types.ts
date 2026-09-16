@@ -27,9 +27,15 @@ export interface MonthlyTrendPoint {
   value: number;
 }
 
+export interface CategoryBreakdownPoint {
+  label: string;
+  value: number;
+}
+
 export interface DashboardLayout {
   kpi_cards: KpiCard[];
   insights: Insight[];
   monthly_trends: Record<string, MonthlyTrendPoint[]>;
+  category_breakdowns?: Record<string, CategoryBreakdownPoint[]>;
   business_domain?: string;
 }

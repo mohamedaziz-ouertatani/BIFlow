@@ -79,3 +79,8 @@ def test_agent_run_computes_banking_kpi_catalog_from_cleaned_dataset(tmp_path):
         "loan_good_standing_rate",
     }
     assert result.computed_values["transaction_count"] > 0
+
+    assert set(result.breakdowns) == {"region"}
+    assert len(result.breakdowns["region"]) > 0
+    some_region = next(iter(result.breakdowns["region"].values()))
+    assert some_region["total_transaction_volume"] >= 0

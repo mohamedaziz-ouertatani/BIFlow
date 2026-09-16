@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CategoryChart from "./CategoryChart";
 import KpiDetail from "./KpiDetail";
 import styles from "./page.module.css";
 import QueryBox from "./QueryBox";
@@ -161,6 +162,19 @@ export default function DashboardPage() {
                     {Object.entries(state.data.monthly_trends).map(([metric, series]) => (
                       <TrendChart key={metric} metric={metric} series={series} />
                     ))}
+                  </div>
+                </section>
+              )}
+
+              {Object.keys(state.data.category_breakdowns ?? {}).length > 0 && (
+                <section id="breakdowns-section">
+                  <h2 className={styles.subheading}>Breakdowns</h2>
+                  <div className={styles.chartGrid}>
+                    {Object.entries(state.data.category_breakdowns ?? {}).map(
+                      ([breakdownKey, points]) => (
+                        <CategoryChart key={breakdownKey} breakdownKey={breakdownKey} points={points} />
+                      )
+                    )}
                   </div>
                 </section>
               )}

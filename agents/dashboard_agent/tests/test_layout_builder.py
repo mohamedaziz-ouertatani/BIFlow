@@ -134,3 +134,77 @@ def test_build_layout_returns_empty_monthly_trends_when_none_present():
     layout = build_layout(analysis, kpis)
 
     assert layout["monthly_trends"] == {}
+
+
+def test_build_layout_includes_a_category_breakdown_per_dimensioned_kpi():
+    kpis = KPICatalog(
+        kpis=[
+            KPIDefinition(
+                name="total_revenue",
+                formula="sum(price)",
+                description="Total revenue",
+                dimensions=["category"],
+            )
+        ],
+        computed_values={"total_revenue": 300.0},
+        breakdowns={
+            "category": {
+                "electronics": {"total_revenue": 200.0},
+                "books": {"total_revenue": 100.0},
+            }
+        },
+    )
+    analysis = AnalysisResult(insights=[], trends={})
+
+    layout = build_layout(analysis, kpis)
+
+    assert layout["category_breakdowns"] == {
+        "total_revenue_by_category": [
+            {"label": "electronics", "value": 200.0},
+            {"label": "books", "value": 100.0},
+        ]
+    }
+
+
+def test_build_layout_caps_category_breakdowns_at_eight_items_with_an_other_bucket():
+    groups = {f"cat{i}": {"total_revenue": float(10 - i)} for i in range(10)}
+    kpis = KPICatalog(
+        kpis=[
+            KPIDefinition(
+                name="total_revenue",
+                formula="sum(price)",
+                description="Total revenue",
+                dimensions=["category"],
+            )
+        ],
+        computed_values={"total_revenue": 55.0},
+        breakdowns={"category": groups},
+    )
+    analysis = AnalysisResult(insights=[], trends={})
+
+    layout = build_layout(analysis, kpis)
+
+    points = layout["category_breakdowns"]["total_revenue_by_category"]
+    assert len(points) == 8
+    assert points[-1]["label"] == "Other"
+    assert points[-1]["value"] == sum(10 - i for i in range(7, 10))
+
+
+def test_build_layout_omits_a_dimension_kpi_pair_with_no_breakdown_data():
+    kpis = KPICatalog(
+        kpis=[
+            KPIDefinition(
+                name="total_revenue",
+                formula="sum(price)",
+                description="Total revenue",
+                dimensions=["category"],
+            )
+        ],
+        computed_values={"total_revenue": 0.0},
+        breakdowns={},
+    )
+    analysis = AnalysisResult(insights=[], trends={})
+
+    layout = build_layout(analysis, kpis)
+
+    assert layout["category_breakdowns"] == {}

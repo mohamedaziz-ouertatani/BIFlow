@@ -161,6 +161,26 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Ask the dashboard")).toBeInTheDocument();
   });
 
+  it("renders a category breakdown chart when the API returns one", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [],
+      insights: [],
+      monthly_trends: {},
+      category_breakdowns: {
+        total_revenue_by_category: [
+          { label: "electronics", value: 200 },
+          { label: "books", value: 100 },
+        ],
+      },
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+
+    expect(await screen.findByText("Revenue by category")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Breakdowns" })).toBeInTheDocument();
+  });
+
   it("hides the ask panel when the sidebar toggle is clicked", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [],

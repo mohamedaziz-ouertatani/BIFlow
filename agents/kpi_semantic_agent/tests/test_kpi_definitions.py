@@ -21,11 +21,15 @@ def test_get_kpi_definitions_returns_five_ecommerce_kpis():
 def test_get_kpi_definitions_returns_five_banking_kpis():
     definitions = get_kpi_definitions("banking")
     assert all(isinstance(d, KPIDefinition) for d in definitions)
-    names = {d.name for d in definitions}
-    assert names == {
+    by_name = {d.name: d for d in definitions}
+    assert set(by_name) == {
         "total_transaction_volume",
         "average_transaction_value",
         "transaction_count",
         "average_account_balance",
         "loan_good_standing_rate",
     }
+    assert by_name["loan_good_standing_rate"].dimensions == []
+    assert all(
+        d.dimensions == ["region"] for name, d in by_name.items() if name != "loan_good_standing_rate"
+    )

@@ -24,7 +24,9 @@ DIMENSION_COLUMNS_BY_DOMAIN = {
         "category": "product_category_name_english",
         "state": "customer_state",
     },
-    "banking": {},
+    "banking": {
+        "region": "region",
+    },
 }
 
 
