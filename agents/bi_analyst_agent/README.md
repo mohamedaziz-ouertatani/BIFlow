@@ -71,3 +71,5 @@ pytest tests/
 - [x] Write unit tests against sample data in `data/sample/`
 - [x] Re-run against the full dataset in `data/raw/olist` and fix the
   trailing-stray-order false-collapse bug it surfaced
+- [x] Support a second business domain (`banking`, Berka dataset) — see
+  `docs/superpowers/specs/2026-09-16-multi-domain-banking-design.md`
