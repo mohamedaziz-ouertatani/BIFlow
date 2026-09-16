@@ -1,14 +1,30 @@
-"""ETL logic for the Data Engineering Agent: builds one order-item-level
-analytical table by joining the cleaned Olist tables together."""
+"""ETL logic for the Data Engineering Agent: builds one analytical table per
+business domain by joining that domain's cleaned tables together."""
 
 import os
 
 import pandas as pd
 import sqlalchemy
 
+TYPE_LABELS = {"PRIJEM": "credit", "VYDAJ": "debit"}
 
-def build_analytical_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Joins cleaned tables into one order-item-level analytical table.
+JOIN_DESCRIPTIONS = {
+    "e-commerce": "joined order_items/orders/customers/payments/reviews/products/sellers",
+    "banking": "joined trans/account/district/loan",
+}
+
+
+def build_analytical_table(tables: dict[str, pd.DataFrame], business_domain: str) -> pd.DataFrame:
+    """Joins cleaned tables into one analytical table for business_domain."""
+    if business_domain == "e-commerce":
+        return _build_ecommerce_table(tables)
+    if business_domain == "banking":
+        return _build_banking_table(tables)
+    raise KeyError(business_domain)
+
+
+def _build_ecommerce_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Joins cleaned Olist tables into one order-item-level analytical table.
 
     Grain: one row per (order_id, order_item_id). Payments and reviews are
     aggregated to order level before joining since an order can have
@@ -46,10 +62,39 @@ def build_analytical_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return result
 
 
+def _build_banking_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Joins cleaned Berka tables into one transaction-level analytical table.
+
+    Grain: one row per trans_id -- the banking analog to the e-commerce
+    order-item grain. client/disp/card/order are loaded and profiled but
+    not joined here, since none of the five banking KPIs need them.
+    """
+    result = tables["trans"].merge(
+        tables["account"][["account_id", "district_id", "frequency"]],
+        on="account_id",
+        how="left",
+    )
+
+    district = tables["district"].rename(columns={"A1": "district_id", "A3": "region"})
+    result = result.merge(district[["district_id", "region"]], on="district_id", how="left")
+
+    loan_status = tables["loan"][["account_id", "status"]].rename(
+        columns={"status": "loan_status"}
+    )
+    result = result.merge(loan_status, on="account_id", how="left")
+
+    result["type_label"] = result["type"].map(TYPE_LABELS)
+
+    return result
+
+
 def run_etl(
-    cleaned_tables: dict[str, pd.DataFrame], output_path: str, database_url: str | None = None
+    cleaned_tables: dict[str, pd.DataFrame],
+    output_path: str,
+    business_domain: str,
+    database_url: str | None = None,
 ) -> tuple[str, list[str]]:
-    """Builds the analytical table and writes it to output_path as CSV.
+    """Builds the analytical table for business_domain and writes it to output_path as CSV.
 
     If database_url is given, also loads the analytical table into a
     Postgres table (`orders_analytical`) — the CSV remains the interchange
@@ -57,12 +102,12 @@ def run_etl(
 
     Returns the output path and a list of human-readable transformations applied.
     """
-    analytical_table = build_analytical_table(cleaned_tables)
+    analytical_table = build_analytical_table(cleaned_tables, business_domain)
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     analytical_table.to_csv(output_path, index=False)
     transformations = [
-        f"joined order_items/orders/customers/payments/reviews/products/sellers "
-        f"into one analytical table ({len(analytical_table)} rows)",
+        f"{JOIN_DESCRIPTIONS[business_domain]} into one analytical table "
+        f"({len(analytical_table)} rows)",
         f"wrote analytical table to {output_path}",
     ]
 
