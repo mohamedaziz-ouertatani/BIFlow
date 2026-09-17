@@ -32,9 +32,9 @@
     "typographyMeta": {
       "headline": { "displayName": "Headline", "purpose": "Page title (brand + domain badge) only." },
       "title": { "displayName": "Title", "purpose": "Section subheadings and detail-panel titles." },
-      "body": { "displayName": "Body", "purpose": "Nav links, insight prose, query answers." },
-      "label": { "displayName": "Label", "purpose": "Uppercase mono labels: section label, domain badge, Formula label, KPI card label." },
-      "numeral": { "displayName": "Numeral", "purpose": "KPI values and, at smaller sizes, chart ticks/tooltips, comparison %, timestamps — always tabular IBM Plex Mono." }
+      "body": { "displayName": "Body", "purpose": "Tab labels, nav links, insight prose, query answers." },
+      "label": { "displayName": "Label", "purpose": "Uppercase mono labels: section label, domain badge, Formula label, KPI card label, tab count badge." },
+      "numeral": { "displayName": "Numeral", "purpose": "KPI values and, at smaller sizes, chart ticks/tooltips, comparison %, tab counts, timestamps — always tabular IBM Plex Mono." }
     },
     "shadows": [
       { "name": "shadow-sm", "value": "0 1px 2px rgba(10,12,16,0.05)", "purpose": "Defined token, not used at rest anywhere in the shipped UI." },
@@ -43,34 +43,41 @@
     ],
     "motion": [
       { "name": "drawer-slide", "value": "transform 0.2s ease", "purpose": "Ask-drawer open/close via translateX, deliberately not an animated margin, to avoid layout thrash on the main column." },
-      { "name": "state-fade", "value": "background 0.15s ease, color 0.15s ease", "purpose": "Hover/active state transitions on nav links, cards, and buttons." }
+      { "name": "state-fade", "value": "background 0.15s ease, color 0.15s ease", "purpose": "Hover/active state transitions on tabs, cards, and buttons." },
+      { "name": "tab-panel-in", "value": "opacity/translateY 0.18s ease-out", "purpose": "Added 2026-09-17: fade+rise-in when a tab panel becomes active." }
     ],
     "breakpoints": [
       { "name": "stacked", "value": "900px" }
+    ],
+    "changelog": [
+      {
+        "date": "2026-09-17",
+        "summary": "Information-architecture revision: single continuous scroll (with sidebar scroll-spy nav) replaced by a four-tab ARIA tabs widget (Overview/Trends/Breakdowns/Insights) with count badges; sidebar's schematic connector nav retired; KPI grid changed from CSS Grid to Flexbox for even last-row stretch; chart/panel heights bounded to fix print/PDF page-break slicing. Colors, typography, and component tokens unchanged."
+      }
     ]
   },
   "components": [
     {
-      "name": "Sidebar Schematic Nav",
+      "name": "Tab Bar",
       "kind": "nav",
       "refersTo": "nav-link",
-      "description": "Vertical connector line with node dots per section; active dot fills signal-cyan with a glow ring instead of a background highlight.",
-      "html": "<nav class=\"ds-nav\"><button class=\"ds-nav-link\">Overview</button><button class=\"ds-nav-link ds-nav-link-active\">Trends</button><button class=\"ds-nav-link\">Breakdowns</button><button class=\"ds-nav-link\">Insights</button></nav>",
-      "css": ".ds-nav { position: relative; display: flex; flex-direction: column; gap: 0.1rem; padding-left: 0.9rem; } .ds-nav::before { content: ''; position: absolute; left: 4px; top: 0.7rem; bottom: 0.7rem; width: 1px; background: rgba(16,20,26,0.24); } .ds-nav-link { position: relative; display: block; width: 100%; text-align: left; font-size: 0.85rem; font-weight: 500; color: #5c6470; background: none; border: none; border-radius: 5px; padding: 0.5rem 0.6rem; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; } .ds-nav-link::before { content: ''; position: absolute; left: -0.9rem; top: 50%; transform: translateY(-50%); width: 7px; height: 7px; border-radius: 50%; background: rgba(16,20,26,0.24); border: 2px solid #fbfbfa; } .ds-nav-link:hover { background: rgba(16,20,26,0.13); color: #10141a; } .ds-nav-link:focus-visible { outline: 2px solid #0891a8; outline-offset: 2px; } .ds-nav-link-active { color: #0891a8; font-weight: 600; } .ds-nav-link-active::before { background: #0891a8; box-shadow: 0 0 0 3px rgba(8,145,168,0.12); }"
+      "description": "Primary navigation, added 2026-09-17. ARIA tablist of four top-level sections (Overview/Trends/Breakdowns/Insights) with mono tabular-nums count badges; replaced the sidebar scroll-spy nav now that content is tabbed rather than one continuous scroll. The Insights badge turns danger-colored when at least one insight is critical.",
+      "html": "<div class=\"ds-tabbar\" role=\"tablist\" aria-label=\"Dashboard sections\"><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\">Overview<span class=\"ds-tab-count\">6</span></button><button class=\"ds-tab ds-tab-active\" role=\"tab\" aria-selected=\"true\">Trends<span class=\"ds-tab-count\">4</span></button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\">Breakdowns<span class=\"ds-tab-count\">3</span></button><button class=\"ds-tab ds-tab-attention\" role=\"tab\" aria-selected=\"false\">Insights<span class=\"ds-tab-count\">3</span></button></div>",
+      "css": ".ds-tabbar { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1.75rem; border-bottom: 1px solid rgba(16,20,26,0.13); } .ds-tab { display: flex; align-items: center; gap: 0.45rem; font-size: 0.88rem; font-weight: 600; color: #5c6470; background: none; border: none; padding: 0.75rem 0.2rem; margin-right: 1.25rem; cursor: pointer; border-bottom: 2px solid transparent; transform: translateY(1px); transition: color 0.15s ease, border-color 0.15s ease; } .ds-tab:hover { color: #10141a; } .ds-tab:focus-visible { outline: 2px solid #0891a8; outline-offset: 2px; } .ds-tab-active { color: #10141a; border-bottom-color: #0891a8; } .ds-tab-count { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.72rem; font-weight: 500; color: #5c6470; background: rgba(16,20,26,0.13); border-radius: 5px; padding: 0.05rem 0.4rem; } .ds-tab-active .ds-tab-count { color: #0891a8; background: rgba(8,145,168,0.12); } .ds-tab-attention .ds-tab-count { color: #c23a3a; background: rgba(194,58,58,0.12); }"
     },
     {
       "name": "KPI Card",
       "kind": "card",
       "refersTo": "kpi-card",
-      "description": "Hairline-grid cell showing a KPI's mono numeral value and mono comparison badge; no per-card border or shadow.",
+      "description": "Hairline-grid cell showing a KPI's mono numeral value and mono comparison badge; no per-card border or shadow. Changed 2026-09-17 from a CSS Grid (auto-fit, minmax(200px,1fr)) to a Flexbox row (flex: 1 1 220px) so a partial last row stretches evenly instead of leaving a short ragged row.",
       "html": "<div class=\"ds-kpi-grid\"><button class=\"ds-kpi-card\"><div class=\"ds-kpi-label\">Total revenue</div><div class=\"ds-kpi-value\">128,430</div><div class=\"ds-kpi-badge\">&#9650; 4.2% vs March</div></button></div>",
-      "css": ".ds-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1px; background: rgba(16,20,26,0.13); border: 1px solid rgba(16,20,26,0.13); border-radius: 8px; overflow: hidden; } .ds-kpi-card { border: none; padding: 1.15rem 1.25rem; background: #fbfbfa; text-align: left; cursor: pointer; width: 100%; transition: background 0.15s ease; } .ds-kpi-card:hover, .ds-kpi-card:focus-visible { background: #ffffff; } .ds-kpi-card:focus-visible { outline: 2px solid #0891a8; outline-offset: -2px; } .ds-kpi-label { font-size: 0.78rem; font-weight: 500; color: #5c6470; margin-bottom: 0.5rem; } .ds-kpi-value { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 1.7rem; font-weight: 600; letter-spacing: -0.01em; } .ds-kpi-badge { font-family: 'IBM Plex Mono', ui-monospace, monospace; display: inline-flex; margin-top: 0.6rem; font-size: 0.72rem; font-weight: 500; padding: 0.15rem 0.4rem; border-radius: 5px; color: #1a7a4c; background: rgba(26,122,76,0.12); }"
+      "css": ".ds-kpi-grid { display: flex; flex-wrap: wrap; gap: 1px; background: rgba(16,20,26,0.13); border: 1px solid rgba(16,20,26,0.13); border-radius: 8px; overflow: hidden; } .ds-kpi-card { flex: 1 1 220px; border: none; padding: 1.35rem 1.4rem; background: #fbfbfa; text-align: left; cursor: pointer; transition: background 0.15s ease; } .ds-kpi-card:hover, .ds-kpi-card:focus-visible { background: #ffffff; } .ds-kpi-card:focus-visible { outline: 2px solid #0891a8; outline-offset: -2px; } .ds-kpi-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #5c6470; margin-bottom: 0.65rem; } .ds-kpi-value { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 1.85rem; font-weight: 600; letter-spacing: -0.01em; } .ds-kpi-badge { font-family: 'IBM Plex Mono', ui-monospace, monospace; display: inline-flex; margin-top: 0.6rem; font-size: 0.72rem; font-weight: 500; padding: 0.15rem 0.4rem; border-radius: 5px; color: #1a7a4c; background: rgba(26,122,76,0.12); }"
     },
     {
       "name": "Insight List Item",
       "kind": "custom",
       "refersTo": null,
-      "description": "Hairline-divided row with a monospace bracket-tag severity marker ([i]/[!]/[x]) instead of a colored left border.",
+      "description": "Hairline-divided row with a monospace bracket-tag severity marker ([i]/[!]/[x]) instead of a colored left border. Reached via the Insights tab (2026-09-17) rather than by scrolling to the bottom of the page.",
       "html": "<ul class=\"ds-insight-list\"><li class=\"ds-insight ds-insight-info\"><span class=\"ds-insight-tag\">[i]</span><span><strong>Revenue up 4.2%</strong> &mdash; driven by higher order volume in March.</span></li><li class=\"ds-insight ds-insight-critical\"><span class=\"ds-insight-tag\">[x]</span><span><strong>Delivery rate dropped</strong> &mdash; on-time rate fell below threshold.</span></li></ul>",
       "css": ".ds-insight-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; border: 1px solid rgba(16,20,26,0.13); border-radius: 8px; overflow: hidden; } .ds-insight { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.85rem 1.1rem; background: #fbfbfa; font-size: 0.9rem; } .ds-insight + .ds-insight { border-top: 1px solid rgba(16,20,26,0.13); } .ds-insight-tag { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.72rem; font-weight: 600; flex-shrink: 0; line-height: 1.6; } .ds-insight-info .ds-insight-tag { color: #0891a8; } .ds-insight-critical .ds-insight-tag { color: #c23a3a; }"
     },
@@ -86,9 +93,9 @@
       "name": "Chart Card",
       "kind": "card",
       "refersTo": null,
-      "description": "Bordered card wrapping a Recharts line or bar chart; mono chart label, signal-cyan stroke/fill, mono axis ticks and tooltip.",
-      "html": "<div class=\"ds-chart-card\"><div class=\"ds-chart-label\">Revenue</div><div class=\"ds-chart-body\">/* Recharts ResponsiveContainer renders here */</div></div>",
-      "css": ".ds-chart-card { border: 1px solid rgba(16,20,26,0.13); border-radius: 8px; padding: 1rem 1.1rem 0.6rem; background: #fbfbfa; } .ds-chart-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; font-weight: 500; color: #5c6470; margin-bottom: 0.35rem; }"
+      "description": "Bordered card wrapping a Recharts line or bar chart; mono chart label, signal-cyan stroke/fill, mono axis ticks and tooltip. Since 2026-09-17 the plotted body sits in a height-capped wrapper (max-height 320px; Math.min(320, Math.max(120, points.length * 32))) so a chart with many rows can no longer be sliced across a print/PDF page boundary.",
+      "html": "<div class=\"ds-chart-card\"><div class=\"ds-chart-label\">Revenue</div><div class=\"ds-chart-body\">/* Recharts ResponsiveContainer renders here, height capped */</div></div>",
+      "css": ".ds-chart-card { border: 1px solid rgba(16,20,26,0.13); border-radius: 8px; padding: 1rem 1.1rem 0.6rem; background: #fbfbfa; break-inside: avoid; } .ds-chart-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; font-weight: 500; color: #5c6470; margin-bottom: 0.35rem; } .ds-chart-body { max-height: 320px; }"
     },
     {
       "name": "Query Box Ask Button",
@@ -109,29 +116,32 @@
   ],
   "narrative": {
     "northStar": "The Audit Console",
-    "overview": "BIFlow's product truth is that every KPI is a formula, run by an auditable agent, not a black box — so the dashboard is built as an instrument panel / lab-ledger, not a generic SaaS card grid. Surfaces are flat lab-paper (light) or dark-instrument black (dark, via prefers-color-scheme), separated by hairline rules rather than floating shadows, with one committed signal-cyan accent reserved strictly for \"this is live.\" The confirmed anti-reference is the prior dashboard generation (adaptive theme, soft nav highlight, stat-tile cards with individual shadows) — that shell is explicitly not the target; this system replaces its soft highlight sidebar with a schematic connector line, and its floating cards with a shared-hairline grid. The signature move is the type split: every numeral — KPI values, chart axis ticks and tooltips, timestamps — is set in IBM Plex Mono with tabular numerals, while every label, heading, and sentence of prose runs in Geist Sans. This isn't decorative; it makes \"this number was computed, not guessed\" legible at a glance, which is the whole pitch of a multi-agent pipeline that traces numbers back to formulas. Density is close but not cramped: a fixed 280px sidebar and fixed 400px query drawer bracket a fluid, capped-width reading column, so the KPI grid, trend/breakdown charts, and insight ledger all read as instrument readouts rather than dashboard widgets.",
+    "overview": "BIFlow's product truth is that every KPI is a formula, run by an auditable agent, not a black box — so the dashboard is built as an instrument panel / lab-ledger, not a generic SaaS card grid. Surfaces are flat lab-paper (light) or dark-instrument black (dark, via prefers-color-scheme), separated by hairline rules rather than floating shadows, with one committed signal-cyan accent reserved strictly for \"this is live.\" The confirmed anti-reference is the prior dashboard generation (adaptive theme, soft nav highlight, stat-tile cards with individual shadows) — that shell is explicitly not the target; this system replaces its soft highlight sidebar with a schematic connector line, and its floating cards with a shared-hairline grid. The signature move is the type split: every numeral — KPI values, chart axis ticks and tooltips, timestamps — is set in IBM Plex Mono with tabular numerals, while every label, heading, and sentence of prose runs in Geist Sans. This isn't decorative; it makes \"this number was computed, not guessed\" legible at a glance, which is the whole pitch of a multi-agent pipeline that traces numbers back to formulas. Density is close but not cramped: a fixed 280px sidebar and fixed 400px query drawer bracket a fluid, capped-width reading column, so the KPI grid, trend/breakdown charts, and insight ledger all read as instrument readouts rather than dashboard widgets. 2026-09-17 — information architecture revision: colors, typography, and component tokens are unchanged; the reading column moved from one continuous scroll (sidebar scroll-spy nav) to a four-tab ARIA tabs widget (Overview/Trends/Breakdowns/Insights), and the sidebar's schematic connector nav was retired since there is no longer a single scrolling page for it to track.",
     "keyCharacteristics": [
       "Flat lab-paper/instrument-black surfaces, hairline-separated, not shadow-separated",
       "One signal-cyan accent, reserved for \"live\" state only",
       "Numerals in IBM Plex Mono (tabular), everything else in Geist Sans",
       "Tightened radii (5/8/10px) read as instrument-panel, not bubbly SaaS",
-      "Insight severity and KPI formulas are typographic ledger marks, not colored side-tabs"
+      "Insight severity and KPI formulas are typographic ledger marks, not colored side-tabs",
+      "Content is organized as four ARIA tabs (Overview/Trends/Breakdowns/Insights), not a single scrolling page"
     ],
     "rules": [
-      { "name": "The One Accent Rule", "body": "Signal-cyan means \"live\" and nothing else: active nav state, focus, and the formula label. It never represents success, warning, or danger, and status colors never borrow it — so a viewer can always read cyan as \"this is the thing currently active,\" not as a fourth status color.", "section": "colors" },
-      { "name": "The Mono-Numerals Rule", "body": "Anything that is a measured or timestamped value — KPI values, chart ticks/tooltips, percent-change badges, \"Updated\" timestamps — is set in IBM Plex Mono with tabular numerals. Anything that is a label, heading, or sentence is Geist Sans. No component mixes the two within the same text run.", "section": "typography" },
+      { "name": "The One Accent Rule", "body": "Signal-cyan means \"live\" and nothing else: active tab/nav state, focus, and the formula label. It never represents success, warning, or danger, and status colors never borrow it — so a viewer can always read cyan as \"this is the thing currently active,\" not as a fourth status color.", "section": "colors" },
+      { "name": "The Mono-Numerals Rule", "body": "Anything that is a measured or timestamped value — KPI values, chart ticks/tooltips, percent-change badges, tab counts, \"Updated\" timestamps — is set in IBM Plex Mono with tabular numerals. Anything that is a label, heading, or sentence is Geist Sans. No component mixes the two within the same text run.", "section": "typography" },
       { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat and hairline-bordered at rest. The one shadow that ships (--shadow-lg on the KPI detail flyout) marks the one panel that is genuinely a layer above the grid, not a decorative default.", "section": "elevation" }
     ],
     "dos": [
-      "Do set every KPI value, chart tick/tooltip, comparison percentage, and timestamp in IBM Plex Mono with tabular-nums; set everything else in Geist Sans.",
-      "Do reserve signal-cyan for live/active state only (nav, focus, formula label) — never repurpose it as a fourth status color.",
+      "Do set every KPI value, chart tick/tooltip, comparison percentage, tab count, and timestamp in IBM Plex Mono with tabular-nums; set everything else in Geist Sans.",
+      "Do reserve signal-cyan for live/active state only (tabs, nav, focus, formula label) — never repurpose it as a fourth status color.",
       "Do separate cards and grid cells with 1px hairlines and shared-gap grids rather than individual shadows; reserve --shadow-lg for the one genuinely lifted surface (the KPI detail flyout).",
-      "Do use monospace bracket tags ([i]/[!]/[x]) for insight severity and dashed-rule ledger framing for formula/explanation content."
+      "Do use monospace bracket tags ([i]/[!]/[x]) for insight severity and dashed-rule ledger framing for formula/explanation content.",
+      "Do bound any variable-height list or chart (max-height + internal scroll, or a capped pixel formula) rather than letting a tab panel grow into an unbounded page."
     ],
     "donts": [
       "Don't add colored left-border \"side-tab\" accents to cards, list items, or callouts — this system replaced that exact pattern (insight rows, the explanation block, query-history turns) with bracket tags and dashed rules; do not reintroduce it on new surfaces.",
       "Don't use hard offset/neobrutalist shadows anywhere in this system — the shadow vocabulary is soft and blurred, and used sparingly.",
-      "Don't apply the \"§ Overview\" mono section-label kicker uniformly above every heading — it currently marks only the Overview section; don't promote it into a system-wide repeated-kicker rule that isn't yet how the build actually uses it."
+      "Don't apply the \"§ Overview\" mono section-label kicker uniformly above every heading — recorded as the rule, but the shipped CSS already applies it to all four tab panel headings; this drift is flagged, not repaired or promoted.",
+      "Don't reintroduce a scroll-spy sidebar nav (connector line + section dots) now that content is tabbed — use the tab bar for section navigation instead."
     ]
   }
 }

@@ -35,26 +35,7 @@
   color: var(--accent);
 }
 
-.sidebarNav {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  padding-left: 0.9rem;
-}
-
-.sidebarNav::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 0.7rem;
-  bottom: 0.7rem;
-  width: 1px;
-  background: var(--border-strong);
-}
-
 .sidebarNavLink {
-  position: relative;
   display: block;
   width: 100%;
   text-align: left;
@@ -63,39 +44,17 @@
   font-weight: 500;
   color: var(--foreground-muted);
   background: none;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.6rem;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.sidebarNavLink::before {
-  content: "";
-  position: absolute;
-  left: -0.9rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--border-strong);
-  border: 2px solid var(--surface);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .sidebarNavLink:hover {
   background: var(--border);
   color: var(--foreground);
-}
-
-.sidebarNavLinkActive {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.sidebarNavLinkActive::before {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--border-strong);
 }
 
 .sidebarActions {
@@ -212,6 +171,13 @@
   color: var(--accent);
 }
 
+.sectionLabelDetail {
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--foreground-muted);
+  font-weight: 600;
+}
+
 .subheading {
   font-size: 1.05rem;
   font-weight: 600;
@@ -222,9 +188,80 @@
   color: var(--danger);
 }
 
+.tabBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--foreground-muted);
+  background: none;
+  border: none;
+  padding: 0.75rem 0.2rem;
+  margin-right: 1.25rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transform: translateY(1px);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tab:hover {
+  color: var(--foreground);
+}
+
+.tabActive {
+  color: var(--foreground);
+  border-bottom-color: var(--accent);
+}
+
+.tabCount {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--foreground-muted);
+  background: var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.05rem 0.4rem;
+}
+
+.tabActive .tabCount {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tabAttention .tabCount {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.tabPanel {
+  animation: tabPanelIn 0.18s ease-out;
+}
+
+@keyframes tabPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .kpiGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1px;
   margin-bottom: 2.5rem;
   background: var(--border);
@@ -234,14 +271,14 @@
 }
 
 .kpiCard {
+  flex: 1 1 220px;
   border: none;
-  padding: 1.15rem 1.25rem;
+  padding: 1.35rem 1.4rem;
   background: var(--surface);
   font: inherit;
   color: inherit;
   text-align: left;
   cursor: pointer;
-  width: 100%;
   transition: background 0.15s ease;
 }
 
@@ -250,16 +287,19 @@
 }
 
 .kpiLabel {
-  font-size: 0.78rem;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--foreground-muted);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.65rem;
 }
 
 .kpiValue {
   font-family: var(--font-plex-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 1.7rem;
+  font-size: 1.85rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -297,11 +337,26 @@
   gap: 1rem;
 }
 
+.breakdownsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-auto-rows: min-content;
+  gap: 1rem;
+  max-height: calc(100vh - 14rem);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
 .chartCard {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 1rem 1.1rem 0.6rem;
   background: var(--surface);
+  break-inside: avoid;
+}
+
+.chartCardBody {
+  max-height: 320px;
 }
 
 .chartLabel {
@@ -517,20 +572,6 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .sidebarNav {
-    flex-direction: row;
-    padding-left: 0;
-    gap: 0.9rem;
-  }
-
-  .sidebarNav::before {
-    display: none;
-  }
-
-  .sidebarNavLink::before {
-    display: none;
-  }
-
   .sidebarActions {
     margin-top: 0;
     margin-left: auto;
@@ -573,5 +614,35 @@
 
   .mainContent {
     padding: 1.5rem 1.25rem 3rem;
+  }
+}
+
+@media print {
+  .sidebar,
+  .drawer,
+  .tabBar {
+    display: none;
+  }
+
+  .contentArea {
+    margin: 0;
+    display: block;
+  }
+
+  .mainContent {
+    max-width: none;
+    padding: 0;
+  }
+
+  .breakdownsGrid {
+    max-height: none;
+    overflow: visible;
+    grid-template-columns: 1fr;
+  }
+
+  .kpiCard,
+  .chartCard,
+  .insight {
+    break-inside: avoid;
   }
 }

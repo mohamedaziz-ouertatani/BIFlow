@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import Sidebar from "./Sidebar";
 
 describe("Sidebar", () => {
-  it("renders the brand, domain badge, and section nav links", () => {
+  it("renders the brand and domain badge", () => {
     render(
       <Sidebar
         domain="banking"
@@ -10,14 +10,12 @@ describe("Sidebar", () => {
         reportUrl={null}
         askOpen={true}
         onToggleAsk={() => {}}
+        onRefresh={() => {}}
       />
     );
 
     expect(screen.getByText("BIFlow")).toBeInTheDocument();
     expect(screen.getByText("banking")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Trends" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Insights" })).toBeInTheDocument();
   });
 
   it("only renders the PDF report link when a report URL is provided", () => {
@@ -28,6 +26,7 @@ describe("Sidebar", () => {
         reportUrl={null}
         askOpen={true}
         onToggleAsk={() => {}}
+        onRefresh={() => {}}
       />
     );
     expect(screen.queryByText("Download PDF report")).not.toBeInTheDocument();
@@ -39,6 +38,7 @@ describe("Sidebar", () => {
         reportUrl="http://localhost:8000/api/report.pdf"
         askOpen={true}
         onToggleAsk={() => {}}
+        onRefresh={() => {}}
       />
     );
     const link = screen.getByText("Download PDF report") as HTMLAnchorElement;
@@ -54,11 +54,29 @@ describe("Sidebar", () => {
         reportUrl={null}
         askOpen={true}
         onToggleAsk={onToggleAsk}
+        onRefresh={() => {}}
       />
     );
 
     const toggle = screen.getByRole("button", { name: "Hide ask panel" });
     fireEvent.click(toggle);
     expect(onToggleAsk).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onRefresh when the refresh button is clicked", () => {
+    const onRefresh = jest.fn();
+    render(
+      <Sidebar
+        domain={null}
+        lastUpdated={null}
+        reportUrl={null}
+        askOpen={true}
+        onToggleAsk={() => {}}
+        onRefresh={onRefresh}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 });

@@ -10,12 +10,16 @@ function mockFetchOnce(response: Partial<Response> & { jsonBody?: unknown }) {
   } as Response);
 }
 
+function goToTab(name: string) {
+  fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${name}`) }));
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
 describe("DashboardPage", () => {
-  it("renders KPI cards, trend charts, and insights from the API response", async () => {
+  it("renders KPI cards on the Overview tab by default", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [
         { name: "total_revenue", label: "Total revenue", value: 123.45 },
@@ -40,8 +44,49 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     expect(await screen.findByText("123.45")).toBeInTheDocument();
-    expect(screen.getByText("Revenue up", { exact: false })).toBeInTheDocument();
+    expect(screen.queryByText("Revenue up", { exact: false })).not.toBeInTheDocument();
+  });
+
+  it("shows trend charts on the Trends tab", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [{ name: "total_revenue", label: "Total revenue", value: 123.45 }],
+      insights: [],
+      monthly_trends: {
+        total_revenue: [
+          { month: "2018-01", value: 100 },
+          { month: "2018-02", value: 150 },
+        ],
+      },
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    await screen.findByText("123.45");
+    goToTab("Trends");
+
     expect(screen.getByText("Revenue")).toBeInTheDocument(); // trend chart label
+  });
+
+  it("shows insights on their own tab", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [{ name: "total_revenue", label: "Total revenue", value: 123.45 }],
+      insights: [
+        {
+          title: "Revenue up",
+          description: "Grew 10%",
+          related_kpi: "total_revenue",
+          severity: "info",
+        },
+      ],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    await screen.findByText("123.45");
+    goToTab("Insights");
+
+    expect(screen.getByText("Revenue up", { exact: false })).toBeInTheDocument();
   });
 
   it("shows a KPI's explanation and related insights when its card is clicked", async () => {
@@ -161,7 +206,7 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Ask the dashboard")).toBeInTheDocument();
   });
 
-  it("renders a category breakdown chart when the API returns one", async () => {
+  it("renders a category breakdown chart on the Breakdowns tab when the API returns one", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [],
       insights: [],
@@ -176,9 +221,10 @@ describe("DashboardPage", () => {
     mockFetchOnce({ jsonBody: layout });
 
     render(<DashboardPage />);
+    await screen.findByText("Ask the dashboard");
+    goToTab("Breakdowns");
 
     expect(await screen.findByText("Revenue by category")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Breakdowns" })).toBeInTheDocument();
   });
 
   it("hides the ask panel when the sidebar toggle is clicked", async () => {
@@ -213,5 +259,40 @@ describe("DashboardPage", () => {
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
 
     jest.useRealTimers();
+  });
+
+  it("moves between tabs with arrow keys and updates aria-selected", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [],
+      insights: [{ title: "Revenue up", description: "Grew 10%", related_kpi: "x", severity: "info" }],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    await screen.findByText("Ask the dashboard");
+
+    const overviewTab = screen.getByRole("tab", { name: /^Overview/ });
+    expect(overviewTab).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(overviewTab, { key: "ArrowRight" });
+    const trendsTab = screen.getByRole("tab", { name: /^Trends/ });
+    expect(trendsTab).toHaveAttribute("aria-selected", "true");
+    expect(overviewTab).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("refreshes immediately when the sidebar refresh button is clicked", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
   });
 });

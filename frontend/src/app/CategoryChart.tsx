@@ -42,12 +42,13 @@ export default function CategoryChart({
   const { metric, dimension } = parseBreakdownKey(breakdownKey);
   const metricLabel = METRIC_LABELS[metric] ?? metric;
   const label = dimension ? `${metricLabel} by ${dimension}` : metricLabel;
-  const chartHeight = Math.max(120, points.length * 32);
+  const chartHeight = Math.min(320, Math.max(120, points.length * 32));
 
   return (
     <div className={styles.chartCard}>
       <div className={styles.chartLabel}>{label}</div>
-      <ResponsiveContainer width="100%" height={chartHeight}>
+      <div className={styles.chartCardBody} style={{ height: chartHeight }}>
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={points}
           layout="vertical"
@@ -74,6 +75,7 @@ export default function CategoryChart({
           <Bar dataKey="value" fill="var(--accent)" radius={[0, 4, 4, 0]} barSize={20} />
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }
