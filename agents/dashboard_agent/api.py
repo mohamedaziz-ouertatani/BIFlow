@@ -12,7 +12,7 @@ import threading
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from agents.dashboard_agent.agent import DEFAULT_LAYOUT_PATH
 from agents.dashboard_agent.nl_query import (
@@ -146,7 +146,7 @@ def create_app(
         )
 
     class QueryRequest(BaseModel):
-        question: str
+        question: str = Field(min_length=1, max_length=1000)
 
     class QueryResponse(BaseModel):
         answer: str

@@ -217,6 +217,24 @@ def test_query_endpoint_returns_504_when_ollama_times_out(tmp_path, monkeypatch)
     assert response.status_code == 504
 
 
+def test_query_endpoint_rejects_empty_question(tmp_path):
+    layout_path = _write_layout(tmp_path, {"kpi_cards": [], "insights": [], "monthly_trends": {}})
+    client = TestClient(create_app(layout_path=layout_path))
+
+    response = client.post("/api/query", json={"question": ""})
+
+    assert response.status_code == 422
+
+
+def test_query_endpoint_rejects_oversized_question(tmp_path):
+    layout_path = _write_layout(tmp_path, {"kpi_cards": [], "insights": [], "monthly_trends": {}})
+    client = TestClient(create_app(layout_path=layout_path))
+
+    response = client.post("/api/query", json={"question": "why? " * 1000})
+
+    assert response.status_code == 422
+
+
 def test_run_pipeline_streams_a_stage_event_per_transition(tmp_path, monkeypatch):
     monkeypatch.setattr("agents.dashboard_agent.api.BIFlowOrchestrator", _FakeOrchestrator)
     client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
