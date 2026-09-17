@@ -72,6 +72,10 @@
   stroke-width: 2;
 }
 
+.edgeError {
+  stroke: var(--danger);
+}
+
 .travelingDot {
   fill: var(--accent-strong);
   filter: drop-shadow(0 0 4px var(--accent));
@@ -99,6 +103,11 @@
 .node-done {
   stroke: var(--success);
   fill: var(--success-soft);
+}
+
+.node-error {
+  stroke: var(--danger);
+  fill: var(--danger-soft);
 }
 
 @keyframes nodePulse {
@@ -130,6 +139,10 @@
 
 .statusLabel-done {
   fill: var(--success);
+}
+
+.statusLabel-error {
+  fill: var(--danger);
 }
 
 .controls {
@@ -250,6 +263,13 @@
   text-align: center;
   font-size: 0.78rem;
   color: var(--foreground-muted);
+}
+
+.errorHint {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--danger);
 }
 
 @media (max-width: 640px) {

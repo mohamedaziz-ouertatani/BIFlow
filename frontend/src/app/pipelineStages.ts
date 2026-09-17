@@ -15,16 +15,17 @@ export const DOMAINS: Domain[] = [
   { id: "telco", label: "Telco", sublabel: "Subscription", color: "#7a4fa3" },
 ];
 
-// Mirrors the real stage names the orchestrator logs in
-// orchestrator/orchestrator.py (_run_stage calls), so this timeline can later
-// be driven by actual pipeline events instead of a fixed schedule.
+// Matches the real stage names orchestrator/orchestrator.py's _run_stage calls
+// use (and therefore the "stage" field on /api/pipeline/run's SSE events) —
+// "orchestrator" isn't one of them; it's a synthetic dispatch phase the
+// frontend shows before the first real stage event arrives.
 export type AgentId =
   | "orchestrator"
   | "data_engineering"
   | "kpi_semantic"
   | "bi_analyst"
   | "dashboard"
-  | "audit";
+  | "auditor";
 
 export interface AgentNode {
   id: AgentId;
@@ -45,58 +46,21 @@ export const AGENT_NODES: AgentNode[] = [
   { id: "kpi_semantic", label: "KPI & Semantic", labelLines: ["KPI &", "Semantic"], x: 481, y: 181, radius: 34 },
   { id: "bi_analyst", label: "BI Analyst", labelLines: ["BI Analyst"], x: 412, y: 394, radius: 34 },
   { id: "dashboard", label: "Dashboard Generator", labelLines: ["Dashboard", "Generator"], x: 188, y: 394, radius: 34 },
-  { id: "audit", label: "BI Auditor / XAI", labelLines: ["BI Auditor", "/ XAI"], x: 119, y: 181, radius: 34 },
+  { id: "auditor", label: "BI Auditor / XAI", labelLines: ["BI Auditor", "/ XAI"], x: 119, y: 181, radius: 34 },
 ];
 
-export interface PipelineStage {
-  agent: AgentId;
-  runningLabel: string;
-  doneLabel: string;
-  durationMs: number;
-}
-
-// Reusable, inspectable timeline: swap durations/labels here, or later drive
-// this array from real backend pipeline events instead of a fixed schedule.
-export const PIPELINE_STAGES: PipelineStage[] = [
-  {
-    agent: "orchestrator",
-    runningLabel: "Dispatching run...",
-    doneLabel: "✓ Dispatched",
-    durationMs: 450,
+// Status labels shown under each node while it runs/finishes/errors. Keyed by
+// agent id so real backend events ("stage_started" for "kpi_semantic", etc.)
+// map straight onto a label without any timeline/duration bookkeeping.
+export const STAGE_LABELS: Record<AgentId, { active: string; done: string; error: string }> = {
+  orchestrator: { active: "Dispatching run...", done: "✓ Dispatched", error: "✗ Dispatch failed" },
+  data_engineering: {
+    active: "Profiling & cleaning data...",
+    done: "✓ Validated",
+    error: "✗ Failed",
   },
-  {
-    agent: "data_engineering",
-    runningLabel: "Profiling & cleaning data...",
-    doneLabel: "✓ Validated",
-    durationMs: 750,
-  },
-  {
-    agent: "kpi_semantic",
-    runningLabel: "Computing KPIs...",
-    doneLabel: "✓ Modeled",
-    durationMs: 700,
-  },
-  {
-    agent: "bi_analyst",
-    runningLabel: "Analyzing trends...",
-    doneLabel: "✓ Analyzed",
-    durationMs: 700,
-  },
-  {
-    agent: "dashboard",
-    runningLabel: "Building dashboard...",
-    doneLabel: "✓ Rendered",
-    durationMs: 650,
-  },
-  {
-    agent: "audit",
-    runningLabel: "Auditing findings...",
-    doneLabel: "✓ Audited",
-    durationMs: 650,
-  },
-];
-
-export const TOTAL_PIPELINE_DURATION_MS = PIPELINE_STAGES.reduce(
-  (sum, stage) => sum + stage.durationMs,
-  0
-);
+  kpi_semantic: { active: "Computing KPIs...", done: "✓ Modeled", error: "✗ Failed" },
+  bi_analyst: { active: "Analyzing trends...", done: "✓ Analyzed", error: "✗ Failed" },
+  dashboard: { active: "Building dashboard...", done: "✓ Rendered", error: "✗ Failed" },
+  auditor: { active: "Auditing findings...", done: "✓ Audited", error: "✗ Failed" },
+};

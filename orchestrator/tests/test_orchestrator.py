@@ -102,3 +102,47 @@ def test_run_pipeline_records_execution_log_on_success(tmp_path):
     succeeded = [e for e in orchestrator.execution_log.trace.events if e.status == "succeeded"]
     assert len(started) == 5
     assert len(succeeded) == 5
+
+
+def test_run_pipeline_emits_on_event_for_each_stage_transition(tmp_path):
+    events = []
+    orchestrator = BIFlowOrchestrator(
+        analytical_path=str(tmp_path / "analytical.csv"),
+        dashboard_layout_path=str(tmp_path / "layout.json"),
+        on_event=lambda stage, status, details: events.append((stage, status, details)),
+    )
+    raw = RawDatasetRef(
+        dataset_path="data/sample/olist",
+        dataset_name="olist_ecommerce",
+        business_domain="e-commerce",
+    )
+
+    orchestrator.run_pipeline(raw)
+
+    assert events == [(e.stage, e.status, e.details) for e in orchestrator.execution_log.trace.events]
+    assert ("data_engineering", "started", {}) in events
+    assert ("auditor", "succeeded", {}) in events
+
+
+def test_run_pipeline_emits_failed_event_with_error_details(tmp_path, monkeypatch):
+    events = []
+    orchestrator = BIFlowOrchestrator(
+        analytical_path=str(tmp_path / "analytical.csv"),
+        dashboard_layout_path=str(tmp_path / "layout.json"),
+        on_event=lambda stage, status, details: events.append((stage, status, details)),
+    )
+    raw = RawDatasetRef(
+        dataset_path="data/sample/olist",
+        dataset_name="olist_ecommerce",
+        business_domain="e-commerce",
+    )
+
+    def _boom(self, cleaned, kpis):
+        raise ValueError("boom")
+
+    monkeypatch.setattr(BIFlowOrchestrator, "_run_bi_analyst", _boom)
+
+    with pytest.raises(PipelineStageError):
+        orchestrator.run_pipeline(raw)
+
+    assert events[-1] == ("bi_analyst", "failed", {"error": "boom"})

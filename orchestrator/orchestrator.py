@@ -5,6 +5,7 @@ directly — every hand-off passes through this class.
 """
 
 import uuid
+from typing import Callable
 
 from agents.auditor_xai_agent.agent import AuditorXAIAgent
 from agents.bi_analyst_agent.agent import BIAnalystAgent
@@ -49,6 +50,11 @@ class BIFlowOrchestrator:
     `self.execution_log` after `run_pipeline` returns (or raises), for
     callers that want tracing beyond the `AuditReport.traceability_log`
     the Auditor/XAI agent synthesizes from each stage's own output.
+
+    Callers that need each stage transition as it happens (e.g. the API
+    streaming progress to the landing page) can pass `on_event`, invoked
+    synchronously with `(stage, status, details)` right alongside each
+    `execution_log` entry.
     """
 
     # Stores output paths/DB connection and clears any previous run's execution log.
@@ -57,10 +63,12 @@ class BIFlowOrchestrator:
         analytical_path: str = DEFAULT_OUTPUT_PATH,
         dashboard_layout_path: str = DEFAULT_LAYOUT_PATH,
         database_url: str | None = None,
+        on_event: Callable[[str, str, dict], None] | None = None,
     ) -> None:
         self.analytical_path = analytical_path
         self.dashboard_layout_path = dashboard_layout_path
         self.database_url = database_url
+        self.on_event = on_event
         self.execution_log: ExecutionLogger | None = None
 
     # Runs every agent in sequence, halting and re-raising on the first stage failure.
@@ -84,14 +92,20 @@ class BIFlowOrchestrator:
 
     # Runs one pipeline stage, logging start/success/failure and wrapping errors as PipelineStageError.
     def _run_stage(self, stage: str, fn, *args):
-        self.execution_log.log(stage, "started")
+        self._log_and_emit(stage, "started")
         try:
             result = fn(*args)
         except Exception as exc:
-            self.execution_log.log(stage, "failed", details={"error": str(exc)})
+            self._log_and_emit(stage, "failed", {"error": str(exc)})
             raise PipelineStageError(stage, exc) from exc
-        self.execution_log.log(stage, "succeeded")
+        self._log_and_emit(stage, "succeeded")
         return result
+
+    # Records a stage transition in the execution log and, if set, forwards it to on_event.
+    def _log_and_emit(self, stage: str, status: str, details: dict | None = None) -> None:
+        self.execution_log.log(stage, status, details=details)
+        if self.on_event:
+            self.on_event(stage, status, details or {})
 
     # Invokes the Data Engineering Agent for this pipeline run.
     def _run_data_engineering(self, raw_dataset: RawDatasetRef) -> CleanedDataset:

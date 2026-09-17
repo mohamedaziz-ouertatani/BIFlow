@@ -6,9 +6,12 @@ instead of a Python process re-rendering server-side on every load.
 
 import json
 import os
+import queue
+import threading
 
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from agents.dashboard_agent.agent import DEFAULT_LAYOUT_PATH
@@ -18,6 +21,8 @@ from agents.dashboard_agent.nl_query import (
     generate_answer,
 )
 from agents.dashboard_agent.report import build_pdf
+from orchestrator.orchestrator import BIFlowOrchestrator, PipelineStageError
+from shared.schemas.data_contracts import RawDatasetRef
 
 DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
@@ -25,6 +30,19 @@ DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000"]
 # interpolated into a filesystem path, so it must be checked against this
 # allowlist rather than passed through as free text.
 ALLOWED_DOMAINS = {"e-commerce", "banking", "telco"}
+
+# Where each domain's raw sample dataset lives, for live-triggered runs.
+DOMAIN_DATASETS: dict[str, tuple[str, str]] = {
+    "e-commerce": ("data/sample/olist", "olist"),
+    "banking": ("data/sample/banking", "banking"),
+    "telco": ("data/sample/telco", "telco"),
+}
+
+_STATUS_TO_EVENT_TYPE = {
+    "started": "stage_started",
+    "succeeded": "stage_succeeded",
+    "failed": "stage_failed",
+}
 
 
 # Builds the FastAPI app with CORS and the health/dashboard routes.
@@ -63,6 +81,45 @@ def create_app(
     @app.get("/api/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    # Runs the real pipeline for a domain and streams each stage's start/success/failure
+    # as Server-Sent Events, so the landing page's animation reflects the actual run
+    # instead of a fixed timeline. Writes its result to that domain's layout file.
+    @app.get("/api/pipeline/run")
+    def run_pipeline(domain: str) -> StreamingResponse:
+        layout_path = _layout_path_for(domain)  # validates domain against ALLOWED_DOMAINS
+        dataset_path, dataset_name = DOMAIN_DATASETS[domain]
+        events: queue.Queue[dict | None] = queue.Queue()
+
+        def on_event(stage: str, status: str, details: dict) -> None:
+            payload: dict = {"type": _STATUS_TO_EVENT_TYPE[status], "stage": stage}
+            if details.get("error"):
+                payload["error"] = details["error"]
+            events.put(payload)
+
+        def run() -> None:
+            pipeline = BIFlowOrchestrator(dashboard_layout_path=layout_path, on_event=on_event)
+            raw_dataset = RawDatasetRef(
+                dataset_path=dataset_path, dataset_name=dataset_name, business_domain=domain
+            )
+            try:
+                pipeline.run_pipeline(raw_dataset)
+                events.put({"type": "pipeline_succeeded"})
+            except PipelineStageError as exc:
+                events.put({"type": "pipeline_failed", "stage": exc.stage, "error": str(exc)})
+            finally:
+                events.put(None)
+
+        threading.Thread(target=run, daemon=True).start()
+
+        def event_stream():
+            while True:
+                event = events.get()
+                if event is None:
+                    break
+                yield f"data: {json.dumps(event)}\n\n"
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
 
     # Serves the latest dashboard layout JSON written by DashboardAgent, optionally scoped to a domain.
     @app.get("/api/dashboard")

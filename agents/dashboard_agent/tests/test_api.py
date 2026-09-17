@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from agents.dashboard_agent.api import create_app
 from agents.dashboard_agent.nl_query import OllamaTimeoutError, OllamaUnavailableError
+from orchestrator.orchestrator import PipelineStageError
 
 
 def _write_layout(tmp_path, layout):
@@ -13,6 +14,43 @@ def _write_layout(tmp_path, layout):
     with open(layout_path, "w") as f:
         json.dump(layout, f)
     return layout_path
+
+
+def _parse_sse_events(response_text):
+    events = []
+    for chunk in response_text.split("\n\n"):
+        chunk = chunk.strip()
+        if chunk.startswith("data: "):
+            events.append(json.loads(chunk[len("data: ") :]))
+    return events
+
+
+class _FakeOrchestrator:
+    """Stands in for BIFlowOrchestrator: emits events without touching real data."""
+
+    STAGES = ["data_engineering", "kpi_semantic", "bi_analyst", "dashboard", "auditor"]
+
+    def __init__(self, dashboard_layout_path, on_event):
+        self.on_event = on_event
+
+    def run_pipeline(self, raw_dataset):
+        for stage in self.STAGES:
+            self.on_event(stage, "started", {})
+            self.on_event(stage, "succeeded", {})
+
+
+class _FailingFakeOrchestrator:
+    """Fails partway through, like a real stage raising an exception."""
+
+    def __init__(self, dashboard_layout_path, on_event):
+        self.on_event = on_event
+
+    def run_pipeline(self, raw_dataset):
+        self.on_event("data_engineering", "started", {})
+        self.on_event("data_engineering", "succeeded", {})
+        self.on_event("kpi_semantic", "started", {})
+        self.on_event("kpi_semantic", "failed", {"error": "boom"})
+        raise PipelineStageError("kpi_semantic", ValueError("boom"))
 
 
 def test_health_endpoint_returns_ok():
@@ -177,3 +215,52 @@ def test_query_endpoint_returns_504_when_ollama_times_out(tmp_path, monkeypatch)
     response = client.post("/api/query", json={"question": "How is revenue?"})
 
     assert response.status_code == 504
+
+
+def test_run_pipeline_streams_a_stage_event_per_transition(tmp_path, monkeypatch):
+    monkeypatch.setattr("agents.dashboard_agent.api.BIFlowOrchestrator", _FakeOrchestrator)
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    response = client.get("/api/pipeline/run", params={"domain": "banking"})
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    events = _parse_sse_events(response.text)
+    assert events[0] == {"type": "stage_started", "stage": "data_engineering"}
+    assert events[1] == {"type": "stage_succeeded", "stage": "data_engineering"}
+    assert events[-1] == {"type": "pipeline_succeeded"}
+    stages_seen = {e["stage"] for e in events if "stage" in e}
+    assert stages_seen == set(_FakeOrchestrator.STAGES)
+
+
+def test_run_pipeline_streams_failure_and_stops(tmp_path, monkeypatch):
+    monkeypatch.setattr("agents.dashboard_agent.api.BIFlowOrchestrator", _FailingFakeOrchestrator)
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    response = client.get("/api/pipeline/run", params={"domain": "banking"})
+
+    events = _parse_sse_events(response.text)
+    assert events[-2] == {"type": "stage_failed", "stage": "kpi_semantic", "error": "boom"}
+    assert events[-1] == {
+        "type": "pipeline_failed",
+        "stage": "kpi_semantic",
+        "error": "Pipeline halted: stage 'kpi_semantic' failed: boom",
+    }
+    # Never reached bi_analyst/dashboard/auditor once kpi_semantic failed.
+    assert not any(e.get("stage") in {"bi_analyst", "dashboard", "auditor"} for e in events)
+
+
+def test_run_pipeline_returns_404_for_unknown_domain(tmp_path):
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    response = client.get("/api/pipeline/run", params={"domain": "unknown"})
+
+    assert response.status_code == 404
+
+
+def test_run_pipeline_requires_a_domain(tmp_path):
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    response = client.get("/api/pipeline/run")
+
+    assert response.status_code == 422
