@@ -30,7 +30,12 @@ export default function KpiDetail({
         </button>
       </div>
 
-      {card.explanation && <p className={styles.explanation}>{card.explanation}</p>}
+      {card.explanation && (
+        <>
+          <p className={styles.explanationLabel}>Formula</p>
+          <p className={styles.explanation}>{card.explanation}</p>
+        </>
+      )}
 
       {trendSeries ? (
         <TrendChart metric={card.name} series={trendSeries} />
