@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import DashboardPage from "./page";
 import type { DashboardLayout } from "./types";
 
+const mockSearchParams = { get: jest.fn() };
+jest.mock("next/navigation", () => ({
+  useSearchParams: () => mockSearchParams,
+}));
+
 function mockFetchOnce(response: Partial<Response> & { jsonBody?: unknown }) {
   global.fetch = jest.fn().mockResolvedValue({
     ok: response.ok ?? true,
@@ -13,6 +18,10 @@ function mockFetchOnce(response: Partial<Response> & { jsonBody?: unknown }) {
 function goToTab(name: string) {
   fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${name}`) }));
 }
+
+beforeEach(() => {
+  mockSearchParams.get.mockReturnValue(null);
+});
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -177,6 +186,30 @@ describe("DashboardPage", () => {
     expect(
       await screen.findByText(/could not reach the dashboard api/i)
     ).toBeInTheDocument();
+  });
+
+  it("fetches and links to the report scoped to the domain in the URL", async () => {
+    mockSearchParams.get.mockReturnValue("banking");
+    const layout: DashboardLayout = {
+      kpi_cards: [],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:8000/api/dashboard?domain=banking",
+        expect.anything()
+      )
+    );
+    const link = (await screen.findByText("Download PDF report")) as HTMLAnchorElement;
+    expect(link.closest("a")).toHaveAttribute(
+      "href",
+      "http://localhost:8000/api/report.pdf?domain=banking"
+    );
   });
 
   it("renders a PDF report download link once the dashboard has loaded", async () => {

@@ -61,15 +61,22 @@ See [`docs/architecture.md`](docs/architecture.md) for more detail.
 
 ## Dashboard
 
-The frontend is an "Audit Console" — every KPI traces back to its formula
-and the pipeline stage that produced it. It's organized as a WAI-ARIA
-tablist (Overview, Breakdowns, Insights, Audit Trail) with full keyboard
-navigation (arrow keys, Home/End) instead of a single long scroll. See
-[`DESIGN.md`](DESIGN.md) for the visual design system and
+`/` is a landing/control-panel screen: pick a domain, watch the five agents
+run in sequence, then land on `/dashboard?domain=<id>` for that domain's
+results. The frontend is an "Audit Console" — every KPI traces back to its
+formula and the pipeline stage that produced it. It's organized as a
+WAI-ARIA tablist (Overview, Breakdowns, Insights, Audit Trail) with full
+keyboard navigation (arrow keys, Home/End) instead of a single long scroll.
+See [`DESIGN.md`](DESIGN.md) for the visual design system and
 [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) for the architecture
 history. The Auditor/XAI Agent also generates a multi-section PDF report
 (`agents/dashboard_agent/report.py`) styled to match the dashboard, available
 from the "Report" link in the console.
+
+The API resolves `?domain=<id>` to `data/processed/dashboard_layout_<id>.json`
+(falling back to `dashboard_layout.json` when no domain is given), so each
+domain needs its own pipeline run before the landing page can show it — see
+"Seeding all three domains" below.
 
 ## Getting started
 
@@ -111,6 +118,19 @@ cd frontend && npm install && npm run dev
 ```
 
 Open **http://localhost:3000**.
+
+### Seeding all three domains
+
+The landing page's domain switcher reads whichever `dashboard_layout_<id>.json`
+files exist under `data/processed/` (gitignored — run these yourself after
+cloning). Run the pipeline once per domain, pointing `--dashboard-layout-path`
+at the id the frontend uses (`e-commerce`, `banking`, `telco`):
+
+```bash
+python -m orchestrator data/sample/olist e-commerce --no-postgres --dashboard-layout-path data/processed/dashboard_layout_e-commerce.json
+python -m orchestrator data/sample/banking banking --no-postgres --dashboard-layout-path data/processed/dashboard_layout_banking.json
+python -m orchestrator data/sample/telco telco --no-postgres --dashboard-layout-path data/processed/dashboard_layout_telco.json
+```
 
 ### Other useful commands
 

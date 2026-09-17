@@ -1,352 +1,97 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import CategoryChart from "./CategoryChart";
-import { formatMetricValue } from "./currency";
-import KpiDetail from "./KpiDetail";
-import styles from "./page.module.css";
-import QueryBox from "./QueryBox";
-import Sidebar from "./Sidebar";
-import TrendChart from "./TrendChart";
-import type { DashboardLayout, MonthlyComparison } from "./types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import PipelineGraph from "./PipelineGraph";
+import styles from "./landing.module.css";
+import { DOMAINS, PIPELINE_STAGES, type DomainId } from "./pipelineStages";
 
-const DIRECTION_ARROW: Record<string, string> = {
-  increasing: "▲",
-  decreasing: "▼",
-  flat: "–",
-};
-
-// Shows the month-over-month direction arrow and percent change for a KPI.
-function ComparisonBadge({ comparison }: { comparison: MonthlyComparison }) {
-  const arrow = DIRECTION_ARROW[comparison.direction] ?? "–";
-  return (
-    <div
-      className={`${styles.comparisonBadge} ${
-        styles[`comparison-${comparison.direction}`] ?? ""
-      }`}
-    >
-      {arrow} {Math.abs(comparison.pct_change).toFixed(1)}% vs {comparison.previous_month}
-    </div>
-  );
-}
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const POLL_INTERVAL_MS = 5000;
-
-type TabId = "overview" | "trends" | "breakdowns" | "insights";
-
-type FetchState =
-  | { status: "loading" }
-  | { status: "no-data" }
-  | { status: "error"; message: string }
-  | { status: "ready"; data: DashboardLayout };
-
-// Fetches the latest dashboard layout from the API, mapping HTTP/network outcomes to FetchState.
-async function fetchDashboard(): Promise<FetchState> {
-  try {
-    const response = await fetch(`${API_URL}/api/dashboard`, { cache: "no-store" });
-    if (response.status === 404) {
-      return { status: "no-data" };
-    }
-    if (!response.ok) {
-      return { status: "error", message: `API returned ${response.status}` };
-    }
-    const data = (await response.json()) as DashboardLayout;
-    return { status: "ready", data };
-  } catch {
-    return { status: "error", message: "Could not reach the dashboard API." };
-  }
-}
-
-// Formats a KPI value for display: monetary KPIs get their dataset's currency,
-// other numbers fall back to plain formatting, and null becomes an em dash.
-function formatValue(name: string, value: number | string | null): string {
-  if (typeof value === "number") {
-    return formatMetricValue(name, value);
-  }
-  return value === null ? "—" : value;
-}
-
-// Top-level dashboard page: polls the API and renders KPIs, trends, breakdowns, and insights as tabs.
-export default function DashboardPage() {
-  const [state, setState] = useState<FetchState>({ status: "loading" });
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [selectedKpiName, setSelectedKpiName] = useState<string | null>(null);
-  const [askOpen, setAskOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+// Landing / control-panel screen: pick a domain, watch the seven agents run
+// in sequence, then hand off to the real dashboard for that domain.
+export default function LandingPage() {
+  const router = useRouter();
+  const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
+  const [running, setRunning] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const poll = async () => {
-      const result = await fetchDashboard();
-      if (!cancelled) {
-        setState(result);
-        if (result.status === "ready") {
-          setLastUpdated(new Date());
-        }
-      }
-    };
-
-    poll();
-    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    const timeouts = timeoutsRef.current;
     return () => {
-      cancelled = true;
-      clearInterval(interval);
+      timeouts.forEach(clearTimeout);
     };
   }, []);
 
-  const handleRefresh = () => {
-    fetchDashboard().then((result) => {
-      setState(result);
-      if (result.status === "ready") {
-        setLastUpdated(new Date());
-      }
+  const handleRun = useCallback(() => {
+    if (!selectedDomain || running) return;
+    setRunning(true);
+    setActiveIndex(0);
+
+    let elapsed = 0;
+    PIPELINE_STAGES.forEach((stage, i) => {
+      elapsed += stage.durationMs;
+      if (i === PIPELINE_STAGES.length - 1) return;
+      const timeout = setTimeout(() => setActiveIndex(i + 1), elapsed);
+      timeoutsRef.current.push(timeout);
     });
-  };
 
-  const data = state.status === "ready" ? state.data : null;
-  const trendEntries = useMemo(
-    () => Object.entries(data?.monthly_trends ?? {}),
-    [data]
-  );
-  const breakdownEntries = useMemo(
-    () => Object.entries(data?.category_breakdowns ?? {}),
-    [data]
-  );
-  const insights = data?.insights ?? [];
-  const criticalCount = insights.filter((i) => i.severity === "critical").length;
-  const warningCount = insights.filter((i) => i.severity === "warning").length;
-
-  const tabs: { id: TabId; label: string; count: number | null }[] = [
-    { id: "overview", label: "Overview", count: data ? data.kpi_cards.length : null },
-    { id: "trends", label: "Trends", count: trendEntries.length },
-    { id: "breakdowns", label: "Breakdowns", count: breakdownEntries.length },
-    { id: "insights", label: "Insights", count: insights.length },
-  ];
+    const finalTimeout = setTimeout(() => {
+      router.push(`/dashboard?domain=${selectedDomain}`);
+    }, elapsed + 400);
+    timeoutsRef.current.push(finalTimeout);
+  }, [selectedDomain, running, router]);
 
   return (
     <div className={styles.shell}>
-      <Sidebar
-        domain={data ? data.business_domain : null}
-        lastUpdated={lastUpdated}
-        reportUrl={data ? `${API_URL}/api/report.pdf` : null}
-        askOpen={askOpen}
-        onToggleAsk={() => setAskOpen((open) => !open)}
-        onRefresh={handleRefresh}
-      />
+      <header className={styles.header}>
+        <div className={styles.wordmark}>BIFlow</div>
+        <p className={styles.tagline}>
+          Automated BI pipeline powered by 5 collaborative agents
+        </p>
+      </header>
 
-      <div
-        className={`${styles.contentArea} ${
-          askOpen && data ? styles.contentAreaDrawerOpen : ""
-        }`}
-      >
-        <main className={styles.mainContent}>
-          {state.status === "loading" && <p>Loading…</p>}
-          {state.status === "no-data" && (
-            <p>No dashboard data yet — run the pipeline first.</p>
-          )}
-          {state.status === "error" && <p className={styles.error}>{state.message}</p>}
+      <div className={styles.main}>
+        <div className={styles.graphCard}>
+          <PipelineGraph activeIndex={activeIndex} />
+        </div>
 
-          {data && (
-            <>
-              <div
-                className={styles.tabBar}
-                role="tablist"
-                aria-label="Dashboard sections"
-                onKeyDown={(event) => {
-                  const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
-                  let nextIndex: number | null = null;
-                  if (event.key === "ArrowRight") {
-                    nextIndex = (currentIndex + 1) % tabs.length;
-                  } else if (event.key === "ArrowLeft") {
-                    nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-                  } else if (event.key === "Home") {
-                    nextIndex = 0;
-                  } else if (event.key === "End") {
-                    nextIndex = tabs.length - 1;
-                  }
-                  if (nextIndex !== null) {
-                    event.preventDefault();
-                    const nextTab = tabs[nextIndex];
-                    setActiveTab(nextTab.id);
-                    document.getElementById(`tab-${nextTab.id}`)?.focus();
-                  }
-                }}
+        <div className={styles.controls}>
+          <p className={styles.sectionLabel}>Select a domain</p>
+          <div className={styles.domainGrid}>
+            {DOMAINS.map((domain) => (
+              <button
+                key={domain.id}
+                type="button"
+                disabled={running}
+                className={`${styles.domainCard} ${
+                  selectedDomain === domain.id ? styles.domainSelected : ""
+                }`}
+                style={{ "--domain-color": domain.color } as React.CSSProperties}
+                aria-pressed={selectedDomain === domain.id}
+                onClick={() => setSelectedDomain(domain.id)}
               >
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    id={`tab-${tab.id}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab === tab.id}
-                    aria-controls={`panel-${tab.id}`}
-                    tabIndex={activeTab === tab.id ? 0 : -1}
-                    className={`${styles.tab} ${
-                      activeTab === tab.id ? styles.tabActive : ""
-                    } ${tab.id === "insights" && criticalCount > 0 ? styles.tabAttention : ""}`}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
-                    {tab.label}
-                    {tab.count !== null && (
-                      <span className={styles.tabCount}>{tab.count}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
+                <span className={styles.domainDot} />
+                <span className={styles.domainText}>
+                  <span className={styles.domainName}>{domain.label}</span>
+                  <span className={styles.domainSub}>{domain.sublabel}</span>
+                </span>
+              </button>
+            ))}
+          </div>
 
-              {activeTab === "overview" && (
-                <section
-                  id="panel-overview"
-                  role="tabpanel"
-                  aria-labelledby="tab-overview"
-                  className={styles.tabPanel}
-                >
-                  <p className={styles.sectionLabel}>KPIs</p>
-                  <div className={styles.kpiGrid}>
-                    {data.kpi_cards.map((card) => (
-                      <button
-                        key={card.name}
-                        type="button"
-                        className={styles.kpiCard}
-                        onClick={() =>
-                          setSelectedKpiName((current) =>
-                            current === card.name ? null : card.name
-                          )
-                        }
-                      >
-                        <div className={styles.kpiLabel}>{card.label}</div>
-                        <div className={styles.kpiValue}>{formatValue(card.name, card.value)}</div>
-                        {card.comparison && <ComparisonBadge comparison={card.comparison} />}
-                      </button>
-                    ))}
-                    {data.kpi_cards.length === 0 && (
-                      <p className={styles.noTrend}>No KPIs computed for this run.</p>
-                    )}
-                  </div>
-
-                  {selectedKpiName &&
-                    (() => {
-                      const selectedCard = data.kpi_cards.find(
-                        (c) => c.name === selectedKpiName
-                      );
-                      if (!selectedCard) return null;
-                      return (
-                        <KpiDetail
-                          card={selectedCard}
-                          trendSeries={data.monthly_trends[selectedKpiName]}
-                          insights={data.insights.filter(
-                            (insight) => insight.related_kpi === selectedKpiName
-                          )}
-                          onClose={() => setSelectedKpiName(null)}
-                        />
-                      );
-                    })()}
-                </section>
-              )}
-
-              {activeTab === "trends" && (
-                <section
-                  id="panel-trends"
-                  role="tabpanel"
-                  aria-labelledby="tab-trends"
-                  className={styles.tabPanel}
-                >
-                  <p className={styles.sectionLabel}>Monthly trends</p>
-                  {trendEntries.length > 0 ? (
-                    <div className={styles.chartGrid}>
-                      {trendEntries.map(([metric, series]) => (
-                        <TrendChart key={metric} metric={metric} series={series} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className={styles.noTrend}>No trend data available for this run.</p>
-                  )}
-                </section>
-              )}
-
-              {activeTab === "breakdowns" && (
-                <section
-                  id="panel-breakdowns"
-                  role="tabpanel"
-                  aria-labelledby="tab-breakdowns"
-                  className={styles.tabPanel}
-                >
-                  <p className={styles.sectionLabel}>Category breakdowns</p>
-                  {breakdownEntries.length > 0 ? (
-                    <div className={styles.breakdownsGrid}>
-                      {breakdownEntries.map(([breakdownKey, points]) => (
-                        <CategoryChart
-                          key={breakdownKey}
-                          breakdownKey={breakdownKey}
-                          points={points}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className={styles.noTrend}>No category breakdowns available for this run.</p>
-                  )}
-                </section>
-              )}
-
-              {activeTab === "insights" && (
-                <section
-                  id="panel-insights"
-                  role="tabpanel"
-                  aria-labelledby="tab-insights"
-                  className={styles.tabPanel}
-                >
-                  <p className={styles.sectionLabel}>
-                    Insights
-                    {(criticalCount > 0 || warningCount > 0) && (
-                      <span className={styles.sectionLabelDetail}>
-                        {criticalCount > 0 && ` ${criticalCount} critical`}
-                        {criticalCount > 0 && warningCount > 0 && ","}
-                        {warningCount > 0 && ` ${warningCount} warning`}
-                      </span>
-                    )}
-                  </p>
-                  {insights.length > 0 ? (
-                    <ul className={styles.insightList}>
-                      {insights.map((insight, i) => (
-                        <li
-                          key={i}
-                          className={`${styles.insight} ${
-                            styles[`severity-${insight.severity}`] ?? ""
-                          }`}
-                        >
-                          <span className={styles.insightText}>
-                            <strong>{insight.title}</strong> — {insight.description}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className={styles.noTrend}>No insights generated for this run.</p>
-                  )}
-                </section>
-              )}
-            </>
-          )}
-        </main>
-
-        {data && (
-          <aside
-            className={`${styles.drawer} ${askOpen ? "" : styles.drawerClosed}`}
-            aria-hidden={!askOpen}
+          <button
+            type="button"
+            className={styles.runButton}
+            disabled={!selectedDomain || running}
+            onClick={handleRun}
           >
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={() => setAskOpen(false)}
-              aria-label="Close ask panel"
-            >
-              ×
-            </button>
-            <QueryBox />
-          </aside>
-        )}
+            {running ? "Running pipeline…" : "Run Pipeline"}
+          </button>
+
+          {!selectedDomain && !running && (
+            <p className={styles.hint}>Choose a domain to enable the run.</p>
+          )}
+        </div>
       </div>
     </div>
   );

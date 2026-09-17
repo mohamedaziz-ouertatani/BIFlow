@@ -14,8 +14,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BIFlow Dashboard",
-  description: "Live KPIs and insights from the BIFlow pipeline",
+  title: "BIFlow",
+  description: "Automated BI pipeline powered by 7 collaborative agents",
 };
 
 // Root HTML shell applied to every page, wiring up the Geist and IBM Plex Mono fonts.

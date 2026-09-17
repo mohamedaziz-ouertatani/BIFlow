@@ -16,8 +16,11 @@ type QueryStatus =
   | { state: "error"; message: string };
 
 // Sends a question to the /api/query endpoint and returns the answer text, throwing a user-facing message on failure.
-async function askQuestion(question: string): Promise<string> {
-  const response = await fetch(`${API_URL}/api/query`, {
+async function askQuestion(question: string, domain?: string | null): Promise<string> {
+  const url = domain
+    ? `${API_URL}/api/query?domain=${encodeURIComponent(domain)}`
+    : `${API_URL}/api/query`;
+  const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question }),
@@ -31,7 +34,7 @@ async function askQuestion(question: string): Promise<string> {
 }
 
 // Chat-style box: lets the user ask a question about the dashboard and shows the local LLM's answer.
-export default function QueryBox() {
+export default function QueryBox({ domain }: { domain?: string | null }) {
   const [input, setInput] = useState("");
   const [turns, setTurns] = useState<QueryTurn[]>([]);
   const [status, setStatus] = useState<QueryStatus>({ state: "idle" });
@@ -43,7 +46,7 @@ export default function QueryBox() {
 
     setStatus({ state: "loading" });
     try {
-      const answer = await askQuestion(question);
+      const answer = await askQuestion(question, domain);
       setTurns((prev) => [...prev, { question, answer }]);
       setStatus({ state: "idle" });
       setInput("");

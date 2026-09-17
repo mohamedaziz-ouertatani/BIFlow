@@ -50,6 +50,53 @@ def test_dashboard_endpoint_returns_404_when_no_layout_exists(tmp_path):
     assert response.status_code == 404
 
 
+def test_dashboard_endpoint_returns_domain_specific_layout(tmp_path):
+    _write_layout(
+        tmp_path,
+        {"kpi_cards": [{"name": "total_revenue", "label": "Total revenue", "value": 1}], "insights": []},
+    )
+    domain_layout_path = tmp_path / "dashboard_layout_banking.json"
+    with open(domain_layout_path, "w") as f:
+        json.dump(
+            {
+                "kpi_cards": [{"name": "avg_loan_amount", "label": "Average loan amount", "value": 999}],
+                "insights": [],
+                "business_domain": "banking",
+            },
+            f,
+        )
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    response = client.get("/api/dashboard", params={"domain": "banking"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["kpi_cards"][0]["name"] == "avg_loan_amount"
+    assert body["business_domain"] == "banking"
+
+
+def test_dashboard_endpoint_returns_404_for_unknown_domain(tmp_path):
+    _write_layout(tmp_path, {"kpi_cards": [], "insights": []})
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    response = client.get("/api/dashboard", params={"domain": "unknown"})
+
+    assert response.status_code == 404
+
+
+def test_dashboard_endpoint_rejects_path_traversal_in_domain(tmp_path):
+    # A secret file outside the layout directory that a traversal attempt would try to read.
+    secret_path = tmp_path.parent / "secret.json"
+    secret_path.write_text('{"leaked": true}')
+    _write_layout(tmp_path, {"kpi_cards": [], "insights": []})
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    response = client.get("/api/dashboard", params={"domain": "../secret"})
+
+    assert response.status_code == 404
+    secret_path.unlink()
+
+
 def test_report_endpoint_returns_pdf(tmp_path):
     layout_path = _write_layout(
         tmp_path,

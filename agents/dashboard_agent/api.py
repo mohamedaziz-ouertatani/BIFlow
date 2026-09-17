@@ -21,6 +21,11 @@ from agents.dashboard_agent.report import build_pdf
 
 DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000"]
 
+# The only business domains the pipeline knows how to run — domain is
+# interpolated into a filesystem path, so it must be checked against this
+# allowlist rather than passed through as free text.
+ALLOWED_DOMAINS = {"e-commerce", "banking", "telco"}
+
 
 # Builds the FastAPI app with CORS and the health/dashboard routes.
 def create_app(
@@ -43,25 +48,38 @@ def create_app(
         allow_headers=["*"],
     )
 
+    # Resolves which layout file to read: a domain-specific one (written ahead
+    # of time per business domain, e.g. dashboard_layout_banking.json) when a
+    # domain is requested, otherwise the path the live pipeline run writes to.
+    def _layout_path_for(domain: str | None) -> str:
+        if not domain:
+            return resolved_layout_path
+        if domain not in ALLOWED_DOMAINS:
+            raise HTTPException(status_code=404, detail=f"Unknown domain: {domain!r}")
+        directory = os.path.dirname(resolved_layout_path) or "."
+        return os.path.join(directory, f"dashboard_layout_{domain}.json")
+
     # Simple liveness check for the API.
     @app.get("/api/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    # Serves the latest dashboard layout JSON written by DashboardAgent.
+    # Serves the latest dashboard layout JSON written by DashboardAgent, optionally scoped to a domain.
     @app.get("/api/dashboard")
-    def dashboard() -> dict:
-        if not os.path.exists(resolved_layout_path):
+    def dashboard(domain: str | None = None) -> dict:
+        path = _layout_path_for(domain)
+        if not os.path.exists(path):
             raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
-        with open(resolved_layout_path) as f:
+        with open(path) as f:
             return json.load(f)
 
-    # Serves a downloadable PDF snapshot of the current dashboard layout.
+    # Serves a downloadable PDF snapshot of the current dashboard layout, optionally scoped to a domain.
     @app.get("/api/report.pdf")
-    def report() -> Response:
-        if not os.path.exists(resolved_layout_path):
+    def report(domain: str | None = None) -> Response:
+        path = _layout_path_for(domain)
+        if not os.path.exists(path):
             raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
-        with open(resolved_layout_path) as f:
+        with open(path) as f:
             layout = json.load(f)
         pdf_bytes = build_pdf(layout)
         return Response(
@@ -78,10 +96,11 @@ def create_app(
 
     # Answers a natural-language question grounded in the current dashboard layout via a local LLM.
     @app.post("/api/query", response_model=QueryResponse)
-    def query(request: QueryRequest) -> QueryResponse:
-        if not os.path.exists(resolved_layout_path):
+    def query(request: QueryRequest, domain: str | None = None) -> QueryResponse:
+        path = _layout_path_for(domain)
+        if not os.path.exists(path):
             raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
-        with open(resolved_layout_path) as f:
+        with open(path) as f:
             layout = json.load(f)
         try:
             answer = generate_answer(request.question, layout)
