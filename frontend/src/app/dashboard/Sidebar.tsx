@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import styles from "./page.module.css";
 
 // Left sidebar: brand/domain identity plus quick actions (refresh, PDF export, ask toggle).
@@ -26,6 +27,9 @@ export default function Sidebar({
       </div>
 
       <div className={styles.sidebarActions}>
+        <Link href="/" className={styles.sidebarNavLink}>
+          ← Back to landing
+        </Link>
         <button type="button" className={styles.sidebarNavLink} onClick={onRefresh}>
           Refresh now
         </button>

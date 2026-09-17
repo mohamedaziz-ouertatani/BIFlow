@@ -18,6 +18,21 @@ describe("Sidebar", () => {
     expect(screen.getByText("banking")).toBeInTheDocument();
   });
 
+  it("links back to the landing page", () => {
+    render(
+      <Sidebar
+        domain={null}
+        lastUpdated={null}
+        reportUrl={null}
+        askOpen={true}
+        onToggleAsk={() => {}}
+        onRefresh={() => {}}
+      />
+    );
+
+    expect(screen.getByRole("link", { name: /back to landing/i })).toHaveAttribute("href", "/");
+  });
+
   it("only renders the PDF report link when a report URL is provided", () => {
     const { rerender } = render(
       <Sidebar
