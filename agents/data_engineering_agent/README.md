@@ -16,7 +16,8 @@ directory containing the Olist CSVs (e.g. `data/sample/olist` or
 ## Output
 `shared.schemas.data_contracts.CleanedDataset` (which embeds a `ProfilingReport`)
 — `dataset_path` points at the written analytical CSV
-(`data/processed/olist_orders_analytical.csv` by default).
+(`data/processed/analytical_table.csv` by default, regardless of business
+domain — the same path is (re)written whether the run is Olist or banking).
 
 ## How it works
 1. **Profile** (`profiler.py`): loads all 8 raw tables, profiles each

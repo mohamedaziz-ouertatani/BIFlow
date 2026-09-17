@@ -56,6 +56,20 @@ See [`docs/architecture.md`](docs/architecture.md) for more detail.
 - `data/` — raw/processed data (gitignored) and a committed sample dataset
 - `docs/` — architecture notes, KPI catalog, report templates
 - `tests/` — end-to-end integration test for the full pipeline
+- [`DESIGN.md`](DESIGN.md) — the dashboard's "Audit Console" design system
+  (tokens, typography, component specs) generated from the shipped UI
+
+## Dashboard
+
+The frontend is an "Audit Console" — every KPI traces back to its formula
+and the pipeline stage that produced it. It's organized as a WAI-ARIA
+tablist (Overview, Breakdowns, Insights, Audit Trail) with full keyboard
+navigation (arrow keys, Home/End) instead of a single long scroll. See
+[`DESIGN.md`](DESIGN.md) for the visual design system and
+[`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) for the architecture
+history. The Auditor/XAI Agent also generates a multi-section PDF report
+(`agents/dashboard_agent/report.py`) styled to match the dashboard, available
+from the "Report" link in the console.
 
 ## Getting started
 
@@ -171,3 +185,7 @@ for the host-vs-container connection details, including the port 5433 remap.
     (not just the previous/latest comparison) for this.
 12. ~~Add automated frontend tests~~ — done: Jest + React Testing Library
     (`frontend/src/app/*.test.tsx`), run in CI alongside lint/build.
+13. ~~Redesign the dashboard as an explainable "Audit Console"~~ — done: new
+    visual system (see [`DESIGN.md`](DESIGN.md)), restructured into a
+    WAI-ARIA tablist with keyboard navigation, and an expanded multi-section
+    PDF report matching the dashboard's design system.

@@ -9,7 +9,7 @@ from agents.data_engineering_agent.etl import run_etl
 from agents.data_engineering_agent.profiler import load_all_tables, profile_dataset
 from shared.schemas.data_contracts import CleanedDataset, RawDatasetRef
 
-DEFAULT_OUTPUT_PATH = "data/processed/olist_orders_analytical.csv"
+DEFAULT_OUTPUT_PATH = "data/processed/analytical_table.csv"
 
 
 class DataEngineeringAgent:

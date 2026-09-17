@@ -126,7 +126,8 @@ one order-item-level analytical table.
    against the category-name translation table for an English name) +
    `sellers`. Geolocation is profiled but deliberately **not** joined in —
    it's a zip-code lookup table, not meaningfully order-linked.
-   Writes the result to `data/processed/olist_orders_analytical.csv`.
+   Writes the result to `data/processed/analytical_table.csv` (the default
+   output path, shared across business domains — see below).
 
 ### Postgres loading (opt-in)
 
