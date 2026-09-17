@@ -12,7 +12,7 @@ import { usePipelineRun } from "./usePipelineRun";
 export default function LandingPage() {
   const router = useRouter();
   const [selectedDomain, setSelectedDomain] = useState<DomainId | null>(null);
-  const { state, run } = usePipelineRun();
+  const { state, run, reset } = usePipelineRun();
   const running = state.status === "running";
 
   useEffect(() => {
@@ -26,6 +26,14 @@ export default function LandingPage() {
   const handleRun = () => {
     if (!selectedDomain || running) return;
     run(selectedDomain);
+  };
+
+  const handleSelectDomain = (id: DomainId) => {
+    if (running) return;
+    setSelectedDomain(id);
+    // Switching domains after a finished/failed run should show a clean graph,
+    // not the previous domain's leftover done/error nodes.
+    if (state.status !== "idle") reset();
   };
 
   return (
@@ -55,7 +63,7 @@ export default function LandingPage() {
                 }`}
                 style={{ "--domain-color": domain.color } as React.CSSProperties}
                 aria-pressed={selectedDomain === domain.id}
-                onClick={() => setSelectedDomain(domain.id)}
+                onClick={() => handleSelectDomain(domain.id)}
               >
                 <span className={styles.domainDot} />
                 <span className={styles.domainText}>
