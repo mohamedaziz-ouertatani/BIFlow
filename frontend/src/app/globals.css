@@ -1,49 +1,52 @@
 :root {
-  --background: #f6f7fb;
-  --foreground: #16181d;
-  --foreground-muted: #5b616e;
-  --surface: #ffffff;
+  /* "Audit Console" system: lab-report paper + instrument-panel dark mode.
+     Neutrals carry the surface; signal-cyan is the one committed accent,
+     reserved for "live" state so it never collides with the status colors. */
+  --background: #eef0ee;
+  --foreground: #10141a;
+  --foreground-muted: #5c6470;
+  --surface: #fbfbfa;
   --surface-raised: #ffffff;
-  --border: rgba(22, 24, 29, 0.1);
-  --border-strong: rgba(22, 24, 29, 0.16);
-  --accent: #4f7cff;
-  --accent-strong: #3a63e0;
-  --accent-soft: rgba(79, 124, 255, 0.12);
-  --success: #1a9c6b;
-  --success-soft: rgba(26, 156, 107, 0.12);
-  --warning: #b8790f;
-  --warning-soft: rgba(184, 121, 15, 0.14);
-  --danger: #d34848;
-  --danger-soft: rgba(211, 72, 72, 0.12);
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --shadow-sm: 0 1px 2px rgba(16, 20, 30, 0.04);
-  --shadow-md: 0 8px 24px rgba(16, 20, 30, 0.06);
-  --shadow-lg: 0 16px 40px rgba(16, 20, 30, 0.1);
+  --border: rgba(16, 20, 26, 0.13);
+  --border-strong: rgba(16, 20, 26, 0.24);
+  --accent: #0891a8;
+  --accent-strong: #066579;
+  --accent-soft: rgba(8, 145, 168, 0.12);
+  --success: #1a7a4c;
+  --success-soft: rgba(26, 122, 76, 0.12);
+  --warning: #a3690a;
+  --warning-soft: rgba(163, 105, 10, 0.14);
+  --danger: #c23a3a;
+  --danger-soft: rgba(194, 58, 58, 0.12);
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --shadow-sm: 0 1px 2px rgba(10, 12, 16, 0.05);
+  --shadow-md: 0 6px 20px rgba(10, 12, 16, 0.07);
+  --shadow-lg: 0 12px 32px rgba(10, 12, 16, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0c0e13;
-    --foreground: #eef0f4;
-    --foreground-muted: #97a0b3;
-    --surface: #161922;
-    --surface-raised: #1b1f2a;
-    --border: rgba(255, 255, 255, 0.09);
-    --border-strong: rgba(255, 255, 255, 0.16);
-    --accent: #7b9dff;
-    --accent-strong: #97b3ff;
-    --accent-soft: rgba(123, 157, 255, 0.16);
-    --success: #3ecf8e;
-    --success-soft: rgba(62, 207, 142, 0.14);
-    --warning: #e0ab3e;
-    --warning-soft: rgba(224, 171, 62, 0.16);
-    --danger: #ef6d6d;
-    --danger-soft: rgba(239, 109, 109, 0.16);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+    --background: #08090b;
+    --foreground: #e7ebee;
+    --foreground-muted: #838c99;
+    --surface: #0e1114;
+    --surface-raised: #13171b;
+    --border: rgba(231, 235, 238, 0.09);
+    --border-strong: rgba(231, 235, 238, 0.18);
+    --accent: #22d3ee;
+    --accent-strong: #67e8f9;
+    --accent-soft: rgba(34, 211, 238, 0.15);
+    --success: #34d399;
+    --success-soft: rgba(52, 211, 153, 0.14);
+    --warning: #eab308;
+    --warning-soft: rgba(234, 179, 8, 0.14);
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.14);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
   }
 }
 
@@ -78,6 +81,11 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+.mono {
+  font-family: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -54,11 +54,11 @@ export default function CategoryChart({
           margin={{ top: 8, right: 24, bottom: 0, left: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} horizontal={false} />
-          <XAxis type="number" tick={{ fontSize: 11 }} />
+          <XAxis type="number" tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }} />
           <YAxis
             type="category"
             dataKey="label"
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }}
             width={110}
             tickLine={false}
           />
@@ -66,8 +66,9 @@ export default function CategoryChart({
             contentStyle={{
               background: "var(--surface-raised)",
               border: "1px solid var(--border-strong)",
-              borderRadius: 8,
+              borderRadius: 5,
               fontSize: 12,
+              fontFamily: "var(--font-plex-mono)",
             }}
           />
           <Bar dataKey="value" fill="var(--accent)" radius={[0, 4, 4, 0]} barSize={20} />

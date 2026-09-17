@@ -41,14 +41,19 @@ export default function TrendChart({
       <ResponsiveContainer width="100%" height={160}>
         <LineChart data={series} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-          <XAxis dataKey="month" tick={{ fontSize: 11 }} minTickGap={20} />
-          <YAxis tick={{ fontSize: 11 }} width={48} />
+          <XAxis
+            dataKey="month"
+            tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }}
+            minTickGap={20}
+          />
+          <YAxis tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }} width={48} />
           <Tooltip
             contentStyle={{
               background: "var(--surface-raised)",
               border: "1px solid var(--border-strong)",
-              borderRadius: 8,
+              borderRadius: 5,
               fontSize: 12,
+              fontFamily: "var(--font-plex-mono)",
             }}
           />
           <Line

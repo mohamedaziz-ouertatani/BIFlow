@@ -45,7 +45,9 @@ export default function KpiDetail({
               key={i}
               className={`${styles.insight} ${styles[`severity-${insight.severity}`] ?? ""}`}
             >
-              <strong>{insight.title}</strong> — {insight.description}
+              <span className={styles.insightText}>
+                <strong>{insight.title}</strong> — {insight.description}
+              </span>
             </li>
           ))}
         </ul>
