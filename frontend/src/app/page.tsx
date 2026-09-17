@@ -4,8 +4,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PipelineGraph from "./PipelineGraph";
 import styles from "./landing.module.css";
-import { DOMAINS, type DomainId } from "./pipelineStages";
-import { usePipelineRun } from "./usePipelineRun";
+import { AGENT_NODES, DOMAINS, STAGE_LABELS, type DomainId } from "./pipelineStages";
+import { usePipelineRun, type PipelineRunState } from "./usePipelineRun";
+
+// Text for the aria-live region: gives screen-reader/keyboard users the same
+// progress signal sighted users get from the graph's color and pulse.
+function announcementFor(state: PipelineRunState): string {
+  if (state.status === "succeeded") return "Pipeline complete. Opening dashboard.";
+  if (state.status === "failed") return state.error ?? "Pipeline failed.";
+  const activeNode = AGENT_NODES.find((node) => state.stages[node.id] === "active");
+  return activeNode ? `${activeNode.label}: ${STAGE_LABELS[activeNode.id].active}` : "";
+}
 
 // Landing / control-panel screen: pick a domain, run the real pipeline for
 // it, then hand off to the dashboard once the run succeeds.
@@ -44,6 +53,10 @@ export default function LandingPage() {
           Automated BI pipeline powered by 5 collaborative agents
         </p>
       </header>
+
+      <div aria-live="polite" className={styles.srOnly}>
+        {announcementFor(state)}
+      </div>
 
       <div className={styles.main}>
         <div className={styles.graphCard}>

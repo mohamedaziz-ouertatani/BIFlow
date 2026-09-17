@@ -97,7 +97,12 @@
   stroke: var(--accent);
   stroke-width: 3;
   fill: var(--accent-soft);
-  animation: nodePulse 0.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .node-active {
+    animation: nodePulse 0.9s ease-in-out infinite;
+  }
 }
 
 .node-done {
@@ -270,6 +275,20 @@
   text-align: center;
   font-size: 0.8rem;
   color: var(--danger);
+}
+
+/* Visually hidden but readable by screen readers — announces stage progress
+   for anyone who can't see the graph's color/pulse cues. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (max-width: 640px) {

@@ -2,6 +2,7 @@
 
 import { AGENT_NODES, GRAPH_VIEWBOX, STAGE_LABELS, type AgentId } from "./pipelineStages";
 import type { StageStatus } from "./usePipelineRun";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import styles from "./landing.module.css";
 
 const orchestrator = AGENT_NODES.find((node) => node.id === "orchestrator")!;
@@ -13,6 +14,8 @@ function statusLabelFor(agent: AgentId, status: StageStatus): string | null {
 }
 
 export default function PipelineGraph({ stages }: { stages: Record<AgentId, StageStatus> }) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   return (
     <svg
       viewBox={`0 0 ${GRAPH_VIEWBOX.width} ${GRAPH_VIEWBOX.height}`}
@@ -37,7 +40,7 @@ export default function PipelineGraph({ stages }: { stages: Record<AgentId, Stag
       })}
 
       {spokes.map((node) => {
-        if (stages[node.id] !== "active") return null;
+        if (stages[node.id] !== "active" || prefersReducedMotion) return null;
         return (
           <circle key={`dot-${node.id}`} r={5} className={styles.travelingDot}>
             <animateMotion
