@@ -226,3 +226,44 @@ def test_run_etl_writes_banking_analytical_table_to_output_path(tmp_path):
     written = pd.read_csv(output_path)
     assert len(written) == 2
     assert "type_label" in written.columns
+
+
+def _telco_tables():
+    return {
+        "customers": pd.DataFrame(
+            {
+                "customerID": ["c1", "c2"],
+                "gender": ["Female", "Male"],
+                "SeniorCitizen": [0, 1],
+                "Contract": ["Month-to-month", "Two year"],
+                "InternetService": ["DSL", "Fiber optic"],
+                "MonthlyCharges": [29.85, 89.1],
+                "TotalCharges": [29.85, 1889.5],
+                "Churn": ["No", "Yes"],
+            }
+        )
+    }
+
+
+def test_build_analytical_table_renames_telco_columns_to_snake_case():
+    result = build_analytical_table(_telco_tables(), "telco")
+    assert len(result) == 2
+    assert set(result.columns) >= {
+        "customer_id",
+        "senior_citizen",
+        "contract",
+        "internet_service",
+        "monthly_charges",
+        "total_charges",
+        "churn",
+    }
+    assert "customerID" not in result.columns
+
+
+def test_run_etl_writes_telco_analytical_table_to_output_path(tmp_path):
+    output_path = str(tmp_path / "telco_analytical.csv")
+    written_path, transformations = run_etl(_telco_tables(), output_path, "telco")
+    assert written_path == output_path
+    written = pd.read_csv(output_path)
+    assert len(written) == 2
+    assert "customer_id" in written.columns

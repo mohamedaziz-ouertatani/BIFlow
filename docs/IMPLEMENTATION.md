@@ -407,8 +407,5 @@ test` in `frontend/`).
   the Orchestrator logging step-by-step as it runs.
 - **No retry/skip/halt logic** between pipeline stages — a failure in any
   agent currently just propagates as an unhandled exception.
-- **Single business domain** — only `e-commerce` has KPI definitions.
-  Multi-domain support was designed for (`business_domain` flows through
-  the contracts cleanly) but never proven with a second domain.
 - **No end-to-end (Playwright) frontend tests** — only unit-level
   rendering tests with a mocked API.

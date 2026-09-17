@@ -50,6 +50,23 @@ def _apply_banking_rules(name: str, df: pd.DataFrame, transformations: list[str]
     return df
 
 
+# Coerces the blank TotalCharges values (new customers with tenure=0) to 0, telco only.
+def _apply_telco_rules(name: str, df: pd.DataFrame, transformations: list[str]) -> pd.DataFrame:
+    if name == "customers" and "TotalCharges" in df.columns:
+        numeric = pd.to_numeric(df["TotalCharges"], errors="coerce")
+        n_blank = int(numeric.isna().sum())
+        if n_blank:
+            df["TotalCharges"] = numeric.fillna(0.0)
+            transformations.append(
+                f"{name}: filled {n_blank} blank TotalCharges values with 0 "
+                "(new customers with tenure=0)"
+            )
+        else:
+            df["TotalCharges"] = numeric
+
+    return df
+
+
 # Deduplicates rows, parses date columns, and applies domain-specific cleaning rules to every table.
 def clean_tables(
     tables: dict[str, pd.DataFrame], business_domain: str
@@ -90,6 +107,9 @@ def clean_tables(
                 transformations.append(f"{name}: parsed {parsed_cols} as datetime")
 
             df = _apply_banking_rules(name, df, transformations)
+
+        elif business_domain == "telco":
+            df = _apply_telco_rules(name, df, transformations)
 
         else:
             raise KeyError(business_domain)

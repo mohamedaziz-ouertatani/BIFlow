@@ -42,3 +42,24 @@ def test_full_pipeline_runs_end_to_end_on_banking_sample_data(tmp_path):
     assert result.validation_status in ("passed", "passed_with_warnings")
     assert len(result.traceability_log) == 4
     assert "total_transaction_volume" in result.explanations
+
+
+def test_full_pipeline_runs_end_to_end_on_telco_sample_data(tmp_path):
+    orchestrator = BIFlowOrchestrator(
+        analytical_path=str(tmp_path / "telco_analytical.csv"),
+        dashboard_layout_path=str(tmp_path / "telco_dashboard_layout.json"),
+    )
+    raw = RawDatasetRef(
+        dataset_path="data/sample/telco",
+        dataset_name="telco_churn",
+        business_domain="telco",
+    )
+
+    result = orchestrator.run_pipeline(raw)
+
+    assert isinstance(result, AuditReport)
+    assert result.validation_status in ("passed", "passed_with_warnings")
+    assert len(result.traceability_log) == 4
+    assert "churn_rate" in result.explanations
+    # No time dimension for telco -- the gap should be explained, not silent.
+    assert "No month-over-month trends available" in result.explanations

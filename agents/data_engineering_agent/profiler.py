@@ -29,11 +29,22 @@ TABLE_FILENAMES_BY_DOMAIN = {
         "order": "order.csv",
         "trans": "trans.csv",
     },
+    "telco": {
+        "customers": "customers.csv",
+    },
 }
 
 CSV_SEP_BY_DOMAIN = {
     "e-commerce": ",",
     "banking": ";",
+    "telco": ",",
+}
+
+# "bank"/"account" on trans are counterparty bank codes only present on
+# inter-bank transfers — mostly empty, otherwise a string code, which
+# pandas can't infer a single dtype for from chunked reads (DtypeWarning).
+DTYPE_OVERRIDES_BY_TABLE = {
+    "trans": {"bank": "string", "account": "string"},
 }
 
 
@@ -43,7 +54,11 @@ def load_all_tables(dataset_dir: str, business_domain: str) -> dict[str, pd.Data
     filenames = TABLE_FILENAMES_BY_DOMAIN[business_domain]
     sep = CSV_SEP_BY_DOMAIN[business_domain]
     return {
-        logical_name: pd.read_csv(os.path.join(dataset_dir, filename), sep=sep)
+        logical_name: pd.read_csv(
+            os.path.join(dataset_dir, filename),
+            sep=sep,
+            dtype=DTYPE_OVERRIDES_BY_TABLE.get(logical_name),
+        )
         for logical_name, filename in filenames.items()
     }
 

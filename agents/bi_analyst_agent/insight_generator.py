@@ -61,10 +61,36 @@ SEVERITY_BY_DIRECTION = {
     "decreasing": "warning",
 }
 
+# Domains whose analytical table has no calendar date to bucket by, so
+# compute_monthly_trends always returns {} for them -- surfaced as an info
+# insight rather than left as a silent gap.
+NO_TIME_DIMENSION_DOMAINS = {"telco"}
+
 
 # Converts each month-over-month trend into a human-readable Insight.
-def generate_monthly_trend_insights(monthly_trends: dict[str, Any]) -> list[Insight]:
-    """Turns each real month-over-month trend into a human-readable Insight."""
+def generate_monthly_trend_insights(
+    monthly_trends: dict[str, Any], business_domain: str | None = None
+) -> list[Insight]:
+    """Turns each real month-over-month trend into a human-readable Insight.
+
+    If monthly_trends is empty because business_domain has no time
+    dimension to bucket by, returns one explanatory info Insight instead of
+    silently producing nothing.
+    """
+    if not monthly_trends and business_domain in NO_TIME_DIMENSION_DOMAINS:
+        return [
+            Insight(
+                title="No month-over-month trends available",
+                description=(
+                    f"The '{business_domain}' dataset has no transaction dates -- only "
+                    "a static per-customer tenure -- so there is no calendar time "
+                    "series to compute month-over-month trends from."
+                ),
+                related_kpi="",
+                severity="info",
+            )
+        ]
+
     insights = []
     for metric_name, trend in monthly_trends.items():
         label = MONTHLY_TREND_LABELS.get(metric_name, metric_name)

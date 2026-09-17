@@ -15,6 +15,7 @@ from shared.schemas.data_contracts import CleanedDataset, KPICatalog
 DATE_COLUMNS_BY_DOMAIN = {
     "e-commerce": ["order_delivered_customer_date", "order_estimated_delivery_date"],
     "banking": [],
+    "telco": [],
 }
 
 # Breakdown dimension name (as used in KPIDefinition.dimensions) -> analytical
@@ -26,6 +27,10 @@ DIMENSION_COLUMNS_BY_DOMAIN = {
     },
     "banking": {
         "region": "region",
+    },
+    "telco": {
+        "contract": "contract",
+        "internet_service": "internet_service",
     },
 }
 
@@ -40,7 +45,7 @@ class KPISemanticAgent:
         kpi_definitions = get_kpi_definitions(business_domain)
         date_columns = DATE_COLUMNS_BY_DOMAIN[business_domain]
 
-        df = pd.read_csv(cleaned.dataset_path, parse_dates=date_columns)
+        df = pd.read_csv(cleaned.dataset_path, parse_dates=date_columns, low_memory=False)
         computed_values = compute_kpis(df, business_domain)
 
         dimensions_used = {d for kpi in kpi_definitions for d in kpi.dimensions}

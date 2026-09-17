@@ -33,3 +33,16 @@ def test_get_kpi_definitions_returns_five_banking_kpis():
     assert all(
         d.dimensions == ["region"] for name, d in by_name.items() if name != "loan_good_standing_rate"
     )
+
+
+def test_get_kpi_definitions_returns_four_telco_kpis():
+    definitions = get_kpi_definitions("telco")
+    assert all(isinstance(d, KPIDefinition) for d in definitions)
+    names = {d.name for d in definitions}
+    assert names == {
+        "churn_rate",
+        "average_monthly_charges",
+        "average_tenure_months",
+        "total_customers",
+    }
+    assert all(d.dimensions == ["contract", "internet_service"] for d in definitions)

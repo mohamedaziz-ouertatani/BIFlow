@@ -67,3 +67,26 @@ def test_agent_run_produces_analysis_result_from_real_banking_kpi_catalog(tmp_pa
         else "concerning",
     }
     assert "monthly" in result.trends
+
+
+TELCO_SAMPLE_DIR = "data/sample/telco"
+
+
+def test_agent_run_produces_analysis_result_from_real_telco_kpi_catalog(tmp_path):
+    analytical_path = str(tmp_path / "telco_analytical.csv")
+    raw = RawDatasetRef(
+        dataset_path=TELCO_SAMPLE_DIR, dataset_name="telco_churn", business_domain="telco"
+    )
+    cleaned = DataEngineeringAgent(output_path=analytical_path).run(raw)
+    kpis = KPISemanticAgent().run(cleaned)
+
+    result = BIAnalystAgent().run(cleaned, kpis)
+
+    assert isinstance(result, AnalysisResult)
+    # No threshold-backed KPIs defined for telco, so no threshold trends --
+    # but the empty monthly trends should be explained, not silent.
+    assert result.trends["monthly"] == {}
+    assert any(
+        i.title == "No month-over-month trends available" and i.severity == "info"
+        for i in result.insights
+    )

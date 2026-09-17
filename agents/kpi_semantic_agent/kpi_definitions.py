@@ -77,9 +77,39 @@ _BANKING_KPIS = [
     ),
 ]
 
+_TELCO_BREAKDOWN_DIMENSIONS = ["contract", "internet_service"]
+
+_TELCO_KPIS = [
+    KPIDefinition(
+        name="churn_rate",
+        formula="count(churn == 'Yes') / count(*)",
+        description="Share of customers who have churned.",
+        dimensions=_TELCO_BREAKDOWN_DIMENSIONS,
+    ),
+    KPIDefinition(
+        name="average_monthly_charges",
+        formula="mean(monthly_charges)",
+        description="Average amount billed to a customer per month.",
+        dimensions=_TELCO_BREAKDOWN_DIMENSIONS,
+    ),
+    KPIDefinition(
+        name="average_tenure_months",
+        formula="mean(tenure)",
+        description="Average number of months a customer has stayed with the company.",
+        dimensions=_TELCO_BREAKDOWN_DIMENSIONS,
+    ),
+    KPIDefinition(
+        name="total_customers",
+        formula="count(*)",
+        description="Total number of customers.",
+        dimensions=_TELCO_BREAKDOWN_DIMENSIONS,
+    ),
+]
+
 _KPIS_BY_DOMAIN = {
     "e-commerce": _ECOMMERCE_KPIS,
     "banking": _BANKING_KPIS,
+    "telco": _TELCO_KPIS,
 }
 
 

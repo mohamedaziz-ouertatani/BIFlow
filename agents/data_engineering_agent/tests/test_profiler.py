@@ -117,3 +117,25 @@ def test_profile_dataset_aggregates_banking_tables_into_one_report():
     assert report.n_rows == sum(len(df) for df in tables.values())
     assert "trans.trans_id" in report.column_types
     assert "account.account_id" in report.column_types
+
+
+TELCO_SAMPLE_DIR = "data/sample/telco"
+
+
+def test_load_all_tables_loads_telco_customers_table():
+    tables = load_all_tables(TELCO_SAMPLE_DIR, "telco")
+    assert set(tables.keys()) == {"customers"}
+    assert len(tables["customers"]) == 500
+    assert "customerID" in tables["customers"].columns
+
+
+def test_profile_dataset_aggregates_telco_table_into_one_report():
+    raw = RawDatasetRef(
+        dataset_path=TELCO_SAMPLE_DIR, dataset_name="telco_churn", business_domain="telco"
+    )
+    report = profile_dataset(raw)
+
+    assert isinstance(report, ProfilingReport)
+    tables = load_all_tables(TELCO_SAMPLE_DIR, "telco")
+    assert report.n_rows == sum(len(df) for df in tables.values())
+    assert "customers.customerID" in report.column_types

@@ -11,6 +11,33 @@ TYPE_LABELS = {"PRIJEM": "credit", "VYDAJ": "debit"}
 JOIN_DESCRIPTIONS = {
     "e-commerce": "joined order_items/orders/customers/payments/reviews/products/sellers",
     "banking": "joined trans/account/district/loan",
+    "telco": "renamed customers columns to snake_case (already one row per customer)",
+}
+
+# customers.csv ships PascalCase/camelCase headers; every other domain's
+# analytical table uses snake_case, so rename for consistency.
+TELCO_COLUMN_RENAMES = {
+    "customerID": "customer_id",
+    "gender": "gender",
+    "SeniorCitizen": "senior_citizen",
+    "Partner": "partner",
+    "Dependents": "dependents",
+    "tenure": "tenure",
+    "PhoneService": "phone_service",
+    "MultipleLines": "multiple_lines",
+    "InternetService": "internet_service",
+    "OnlineSecurity": "online_security",
+    "OnlineBackup": "online_backup",
+    "DeviceProtection": "device_protection",
+    "TechSupport": "tech_support",
+    "StreamingTV": "streaming_tv",
+    "StreamingMovies": "streaming_movies",
+    "Contract": "contract",
+    "PaperlessBilling": "paperless_billing",
+    "PaymentMethod": "payment_method",
+    "MonthlyCharges": "monthly_charges",
+    "TotalCharges": "total_charges",
+    "Churn": "churn",
 }
 
 
@@ -21,6 +48,8 @@ def build_analytical_table(tables: dict[str, pd.DataFrame], business_domain: str
         return _build_ecommerce_table(tables)
     if business_domain == "banking":
         return _build_banking_table(tables)
+    if business_domain == "telco":
+        return _build_telco_table(tables)
     raise KeyError(business_domain)
 
 
@@ -89,6 +118,16 @@ def _build_banking_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     result["type_label"] = result["type"].map(TYPE_LABELS)
 
     return result
+
+
+# Renames the single customers table to snake_case; no joins needed (one row per customer).
+def _build_telco_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Renames the single customers table to snake_case columns.
+
+    Grain: one row per customer -- already the analytical-table grain, so
+    unlike the other two domains there's nothing to join.
+    """
+    return tables["customers"].rename(columns=TELCO_COLUMN_RENAMES)
 
 
 # Builds the analytical table, writes it as CSV, and optionally loads it into Postgres.

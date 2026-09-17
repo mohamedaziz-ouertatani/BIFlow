@@ -85,3 +85,26 @@ def test_agent_run_produces_cleaned_dataset_from_sample_banking(tmp_path):
     assert "trans_id" in written.columns
     assert "region" in written.columns
     assert len(written) > 0
+
+
+TELCO_SAMPLE_DIR = "data/sample/telco"
+
+
+def test_agent_run_produces_cleaned_dataset_from_sample_telco(tmp_path):
+    output_path = str(tmp_path / "telco_analytical.csv")
+    agent = DataEngineeringAgent(output_path=output_path)
+    raw = RawDatasetRef(
+        dataset_path=TELCO_SAMPLE_DIR, dataset_name="telco_churn", business_domain="telco"
+    )
+
+    result = agent.run(raw)
+
+    assert isinstance(result, CleanedDataset)
+    assert result.dataset_path == output_path
+    assert result.data_quality_report.n_rows > 0
+    assert len(result.transformations_applied) > 0
+
+    written = pd.read_csv(output_path)
+    assert "customer_id" in written.columns
+    assert "churn" in written.columns
+    assert len(written) == 500

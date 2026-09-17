@@ -1,6 +1,7 @@
 """Tests for kpi_computation.py: computing KPI values from the analytical table."""
 
 import pandas as pd
+import pytest
 
 from agents.kpi_semantic_agent.kpi_computation import compute_kpi_breakdowns, compute_kpis
 
@@ -166,3 +167,44 @@ def test_compute_kpis_banking_loan_good_standing_rate_is_none_when_no_loan():
     df = _banking_df(loan_status=[None, None, None, None])
     computed = compute_kpis(df, "banking")
     assert computed["loan_good_standing_rate"] is None
+
+
+def _telco_df(**overrides):
+    base = pd.DataFrame(
+        {
+            "customer_id": ["c1", "c2", "c3", "c4"],
+            "contract": ["Month-to-month", "Two year", "Month-to-month", "One year"],
+            "internet_service": ["DSL", "Fiber optic", "DSL", "No"],
+            "monthly_charges": [29.85, 89.1, 56.95, 20.0],
+            "tenure": [1, 34, 2, 45],
+            "churn": ["Yes", "No", "Yes", "No"],
+        }
+    )
+    return base.assign(**overrides) if overrides else base
+
+
+def test_compute_kpis_telco_churn_rate_shares_yes_customers():
+    computed = compute_kpis(_telco_df(), "telco")
+    assert computed["churn_rate"] == 0.5
+
+
+def test_compute_kpis_telco_average_monthly_charges_means_column():
+    computed = compute_kpis(_telco_df(), "telco")
+    assert computed["average_monthly_charges"] == pytest.approx((29.85 + 89.1 + 56.95 + 20.0) / 4)
+
+
+def test_compute_kpis_telco_average_tenure_months_means_column():
+    computed = compute_kpis(_telco_df(), "telco")
+    assert computed["average_tenure_months"] == pytest.approx((1 + 34 + 2 + 45) / 4)
+
+
+def test_compute_kpis_telco_total_customers_counts_rows():
+    computed = compute_kpis(_telco_df(), "telco")
+    assert computed["total_customers"] == 4
+
+
+def test_compute_kpi_breakdowns_telco_groups_by_contract():
+    breakdowns = compute_kpi_breakdowns(_telco_df(), "contract", "telco")
+    assert set(breakdowns) == {"Month-to-month", "Two year", "One year"}
+    assert breakdowns["Month-to-month"]["total_customers"] == 2
+    assert breakdowns["Month-to-month"]["churn_rate"] == 1.0

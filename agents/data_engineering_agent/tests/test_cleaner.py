@@ -89,3 +89,29 @@ def test_clean_tables_normalizes_vyber_transaction_type_to_vydaj():
     cleaned, transformations = clean_tables(tables, "banking")
     assert list(cleaned["trans"]["type"]) == ["PRIJEM", "VYDAJ", "VYDAJ"]
     assert any("normalized 1 'VYBER' transaction types to 'VYDAJ'" in t for t in transformations)
+
+
+def test_clean_tables_fills_blank_total_charges_with_zero():
+    tables = {
+        "customers": pd.DataFrame(
+            {
+                "customerID": ["c1", "c2"],
+                "tenure": [0, 34],
+                "TotalCharges": [" ", "1889.5"],
+            }
+        )
+    }
+    cleaned, transformations = clean_tables(tables, "telco")
+    assert list(cleaned["customers"]["TotalCharges"]) == [0.0, 1889.5]
+    assert any("filled 1 blank TotalCharges values with 0" in t for t in transformations)
+
+
+def test_clean_tables_leaves_telco_total_charges_untouched_when_no_blanks():
+    tables = {
+        "customers": pd.DataFrame(
+            {"customerID": ["c1"], "tenure": [5], "TotalCharges": ["100.0"]}
+        )
+    }
+    cleaned, transformations = clean_tables(tables, "telco")
+    assert list(cleaned["customers"]["TotalCharges"]) == [100.0]
+    assert not any("TotalCharges" in t for t in transformations)

@@ -237,3 +237,18 @@ def test_compute_monthly_trends_banking_omits_metrics_with_fewer_than_two_months
     )
     trends = compute_monthly_trends(df, "banking")
     assert trends == {}
+
+
+def test_compute_monthly_trends_telco_always_returns_empty():
+    """Telco has no transaction dates -- only static per-customer tenure --
+    so there's no time dimension to bucket by."""
+    df = pd.DataFrame(
+        {
+            "customer_id": ["c1", "c2"],
+            "tenure": [1, 34],
+            "monthly_charges": [29.85, 56.95],
+            "churn": ["Yes", "No"],
+        }
+    )
+    trends = compute_monthly_trends(df, "telco")
+    assert trends == {}

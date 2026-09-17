@@ -2,9 +2,13 @@
 
 **Owner:** Person B (BI Semantic & KPI Agent)
 
-KPIs defined in `agents/kpi_semantic_agent/kpi_definitions.py` for the
-`e-commerce` business domain (Olist), computed by
-`agents/kpi_semantic_agent/kpi_computation.py`.
+KPIs defined in `agents/kpi_semantic_agent/kpi_definitions.py`, computed by
+`agents/kpi_semantic_agent/kpi_computation.py`. This page documents the
+`e-commerce` domain (Olist) KPIs in full; the `banking` (Berka) and `telco`
+(IBM Telco Customer Churn) domains follow the same formula/dimensions/
+business-domain shape -- see `kpi_definitions.py` directly for their KPIs
+(`total_transaction_volume`, `loan_good_standing_rate`, etc. for banking;
+`churn_rate`, `average_monthly_charges`, etc. for telco).
 
 ## total_revenue
 

@@ -105,3 +105,23 @@ def test_generate_monthly_trend_insights_uses_named_label_for_transaction_volume
     }
     insights = generate_monthly_trend_insights(monthly_trends)
     assert insights[0].title == "Transaction volume increasing month-over-month"
+
+
+def test_generate_monthly_trend_insights_explains_empty_trends_for_telco():
+    insights = generate_monthly_trend_insights({}, "telco")
+    assert len(insights) == 1
+    assert insights[0].severity == "info"
+    assert insights[0].title == "No month-over-month trends available"
+    assert "telco" in insights[0].description
+
+
+def test_generate_monthly_trend_insights_stays_empty_for_domains_with_a_time_dimension():
+    """An empty trends dict for e-commerce/banking means "not enough history
+    yet", not "no time dimension" -- shouldn't get the telco-style note."""
+    insights = generate_monthly_trend_insights({}, "e-commerce")
+    assert insights == []
+
+
+def test_generate_monthly_trend_insights_stays_empty_when_domain_not_given():
+    insights = generate_monthly_trend_insights({})
+    assert insights == []

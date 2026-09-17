@@ -84,3 +84,32 @@ def test_agent_run_computes_banking_kpi_catalog_from_cleaned_dataset(tmp_path):
     assert len(result.breakdowns["region"]) > 0
     some_region = next(iter(result.breakdowns["region"].values()))
     assert some_region["total_transaction_volume"] >= 0
+
+
+TELCO_SAMPLE_DIR = "data/sample/telco"
+
+
+def test_agent_run_computes_telco_kpi_catalog_from_cleaned_dataset(tmp_path):
+    analytical_path = str(tmp_path / "telco_analytical.csv")
+    raw = RawDatasetRef(
+        dataset_path=TELCO_SAMPLE_DIR, dataset_name="telco_churn", business_domain="telco"
+    )
+    cleaned = DataEngineeringAgent(output_path=analytical_path).run(raw)
+
+    agent = KPISemanticAgent()
+    result = agent.run(cleaned)
+
+    assert isinstance(result, KPICatalog)
+    assert {kpi.name for kpi in result.kpis} == {
+        "churn_rate",
+        "average_monthly_charges",
+        "average_tenure_months",
+        "total_customers",
+    }
+    assert result.computed_values["total_customers"] == 500
+    assert 0 <= result.computed_values["churn_rate"] <= 1
+
+    assert set(result.breakdowns) == {"contract", "internet_service"}
+    assert len(result.breakdowns["contract"]) > 0
+    some_contract = next(iter(result.breakdowns["contract"].values()))
+    assert some_contract["total_customers"] > 0

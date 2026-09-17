@@ -119,6 +119,8 @@ Open **http://localhost:3000**.
   populated with the raw CSVs — gitignored, not committed)
 - `python -m orchestrator data/sample/banking banking --no-postgres` — run
   the pipeline against the banking domain (Berka dataset sample)
+- `python -m orchestrator data/sample/telco telco --no-postgres` — run
+  the pipeline against the telco domain (IBM Telco Customer Churn sample)
 - `pytest` — run the Python test suite
 - `cd frontend && npm test` — run the frontend test suite
 - Drop `--no-postgres` to also load results into Postgres

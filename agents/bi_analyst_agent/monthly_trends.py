@@ -88,6 +88,8 @@ def compute_monthly_trends(analytical_df: pd.DataFrame, business_domain: str) ->
         return _compute_ecommerce_monthly_trends(analytical_df)
     if business_domain == "banking":
         return _compute_banking_monthly_trends(analytical_df)
+    if business_domain == "telco":
+        return _compute_telco_monthly_trends(analytical_df)
     raise KeyError(business_domain)
 
 
@@ -121,6 +123,15 @@ def _compute_ecommerce_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, 
             trends[name] = entry
 
     return trends
+
+
+# Always empty: telco has no transaction dates, only static per-customer tenure.
+def _compute_telco_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, Any]:
+    """Always returns {} -- the telco analytical table has no time dimension
+    to bucket by (only a static 'tenure in months' field per customer, not
+    calendar dates), so there is no real month-over-month series to compute.
+    """
+    return {}
 
 
 # Computes month-over-month trends for transaction volume, count, and balance.

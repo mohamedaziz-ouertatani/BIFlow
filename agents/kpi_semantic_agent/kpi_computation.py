@@ -30,6 +30,8 @@ def compute_kpis(df: pd.DataFrame, business_domain: str) -> dict[str, Any]:
         return _compute_ecommerce_kpis(df)
     if business_domain == "banking":
         return _compute_banking_kpis(df)
+    if business_domain == "telco":
+        return _compute_telco_kpis(df)
     raise KeyError(business_domain)
 
 
@@ -91,4 +93,22 @@ def _compute_banking_kpis(df: pd.DataFrame) -> dict[str, Any]:
         "transaction_count": transaction_count,
         "average_account_balance": average_account_balance,
         "loan_good_standing_rate": loan_good_standing_rate,
+    }
+
+
+# Computes the telco KPI values from the customer-level analytical table.
+def _compute_telco_kpis(df: pd.DataFrame) -> dict[str, Any]:
+    """Computes the telco KPI values from the customer-level analytical table."""
+    total_customers = int(len(df))
+    churn_rate = (
+        float((df["churn"] == "Yes").mean()) if total_customers else None
+    )
+    average_monthly_charges = float(df["monthly_charges"].mean())
+    average_tenure_months = float(df["tenure"].mean())
+
+    return {
+        "churn_rate": churn_rate,
+        "average_monthly_charges": average_monthly_charges,
+        "average_tenure_months": average_tenure_months,
+        "total_customers": total_customers,
     }
