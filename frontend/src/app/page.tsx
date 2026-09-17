@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import CategoryChart from "./CategoryChart";
+import { formatMetricValue } from "./currency";
 import KpiDetail from "./KpiDetail";
 import styles from "./page.module.css";
 import QueryBox from "./QueryBox";
@@ -57,10 +58,11 @@ async function fetchDashboard(): Promise<FetchState> {
   }
 }
 
-// Formats a KPI value for display: integers as-is, floats to 2 decimals, null as an em dash.
-function formatValue(value: number | string | null): string {
+// Formats a KPI value for display: monetary KPIs get their dataset's currency,
+// other numbers fall back to plain formatting, and null becomes an em dash.
+function formatValue(name: string, value: number | string | null): string {
   if (typeof value === "number") {
-    return Number.isInteger(value) ? value.toString() : value.toFixed(2);
+    return formatMetricValue(name, value);
   }
   return value === null ? "—" : value;
 }
@@ -215,7 +217,7 @@ export default function DashboardPage() {
                         }
                       >
                         <div className={styles.kpiLabel}>{card.label}</div>
-                        <div className={styles.kpiValue}>{formatValue(card.value)}</div>
+                        <div className={styles.kpiValue}>{formatValue(card.name, card.value)}</div>
                         {card.comparison && <ComparisonBadge comparison={card.comparison} />}
                       </button>
                     ))}

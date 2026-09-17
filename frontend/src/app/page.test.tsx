@@ -43,7 +43,7 @@ describe("DashboardPage", () => {
 
     render(<DashboardPage />);
 
-    expect(await screen.findByText("123.45")).toBeInTheDocument();
+    expect(await screen.findByText("R$123.45")).toBeInTheDocument();
     expect(screen.queryByText("Revenue up", { exact: false })).not.toBeInTheDocument();
   });
 
@@ -61,7 +61,7 @@ describe("DashboardPage", () => {
     mockFetchOnce({ jsonBody: layout });
 
     render(<DashboardPage />);
-    await screen.findByText("123.45");
+    await screen.findByText("R$123.45");
     goToTab("Trends");
 
     expect(screen.getByText("Revenue")).toBeInTheDocument(); // trend chart label
@@ -83,7 +83,7 @@ describe("DashboardPage", () => {
     mockFetchOnce({ jsonBody: layout });
 
     render(<DashboardPage />);
-    await screen.findByText("123.45");
+    await screen.findByText("R$123.45");
     goToTab("Insights");
 
     expect(screen.getByText("Revenue up", { exact: false })).toBeInTheDocument();

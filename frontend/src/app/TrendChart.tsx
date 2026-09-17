@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatMetricValue } from "./currency";
 import styles from "./page.module.css";
 import type { MonthlyTrendPoint } from "./types";
 
@@ -46,7 +47,11 @@ export default function TrendChart({
             tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }}
             minTickGap={20}
           />
-          <YAxis tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }} width={48} />
+          <YAxis
+            tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }}
+            width={48}
+            tickFormatter={(value: number) => formatMetricValue(metric, value)}
+          />
           <Tooltip
             contentStyle={{
               background: "var(--surface-raised)",
@@ -55,6 +60,7 @@ export default function TrendChart({
               fontSize: 12,
               fontFamily: "var(--font-plex-mono)",
             }}
+            formatter={(value) => formatMetricValue(metric, Number(value))}
           />
           <Line
             type="monotone"
