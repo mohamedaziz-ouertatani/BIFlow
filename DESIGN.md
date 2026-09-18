@@ -211,3 +211,60 @@ A 1.85rem square, 5px-radius, hairline-background glyph button (`×` character, 
 - **Don't** use hard offset/neobrutalist shadows anywhere in this system — the shadow vocabulary is soft and blurred, and used sparingly.
 - **Don't** apply the "§ Overview" mono section-label kicker uniformly above every heading — it currently marks only the Overview section; don't promote it into a system-wide repeated-kicker rule that isn't yet how the build actually uses it. **Known drift (not repaired):** the shipped CSS applies the same `::before { content: "§ " }` kicker to every `.sectionLabel` instance, so all four tab panels ("§ KPIs", "§ Monthly trends", "§ Category breakdowns", "§ Insights") currently render the kicker, not only Overview — the recorded rule and the build already disagree; flagged here rather than either silently repaired in code or promoted into a system-wide kicker rule.
 - **Don't** reintroduce a scroll-spy sidebar nav (connector line + section dots) now that content is tabbed — it has no scrolling page left to track; use the tab bar for section navigation instead.
+
+---
+
+# Design System: Landing / Launch Console
+
+**Scope note:** everything above this line is the "Audit Console" system and applies only to the dashboard route (`/dashboard`). This section documents a second, deliberately separate visual world that applies only to the landing/launch route (`frontend/src/app/page.tsx`, styled by `frontend/src/app/landing.module.css`). The two systems intentionally do not share tokens — see the direction contract at `.impeccable/surfaces/frontend-src-app-page-tsx.md` for why. Do not merge these tokens into the Audit Console block above, and do not carry Audit Console's signal-cyan/lab-paper vocabulary onto this route.
+
+## Overview
+
+**Creative North Star: "Mission Control Console."** The landing route's job is to convince a first-time visitor (an academic evaluator, in one sitting) that BIFlow's five-agent pipeline is a real running system, not a mockup — so the page is built as a live ops console monitored during an actual run, not a marketing hero with a diagram bolted on. A visitor picks a "mission profile" (business domain), arms the sequence, and watches five subsystem panels and a scrolling mission log report real backend telemetry (actual SSE events from `/api/pipeline/run`) until the console hands off to the dashboard.
+
+This is the chosen "Impeccable's Pick" direction from the redesign's direction round (assigned candidate was "Terminal Boot Sequence," seed key `966d077f`) — an ops-room reading, deliberately the most expected register for an AI-pipeline demo, built with real craft rather than a shallow sci-fi skin: genuine status-light states, real log content sourced from the pipeline's own stage labels, and a single reserved "ignition" flare color rather than decorative neon.
+
+**Key Characteristics:**
+- Near-black instrument ground with a subtle CRT scanline texture (static by default; a slow light-sweep motion for `prefers-reduced-motion: no-preference`)
+- Status-light vocabulary (idle/armed/done/error) instead of Audit Console's single signal-cyan accent
+- Monospace (IBM Plex Mono) reserved for anything measured or logged — timestamps, status codes, log lines, readouts; Geist Sans for labels, headings, and copy
+- Five subsystem panels as a shared-hairline bezel bank, not a node-graph diagram
+- A scrolling mission-log strip pinned to the viewport bottom as continuous "proof of life"
+
+## Colors
+
+- **Console background** (`#05070a`, radial-vignetted toward `#0b1017`): the page ground.
+- **Panel** (`#0b0f14`) / **Panel raised** (`#121820`): resting vs. active/done/error subsystem panel and control-deck surfaces.
+- **Console text** (`#dbe4ea`): primary text. **Console text dim** (`#838f9c`): labels, codes, timestamps, idle readouts — tuned to clear 4.5:1 contrast against both panel surfaces (`#6f7b87`, the first value tried, fell just under 4.5:1 and was rejected).
+- **Hairline** (`rgba(196,212,224,0.12)`) / **Hairline strong** (`rgba(196,212,224,0.26)`): panel borders and dividers.
+- **Idle** (`#4b5561`): status light/dot resting state.
+- **Armed** (`#ffb454`, amber): the "live/running" signal — status dot, active panel light and readout text, the Run/Initiate control. This is the landing route's equivalent of Audit Console's signal-cyan, deliberately a different hue so the two routes never read as the same system mid-navigation.
+- **Done** (`#4ade80`, green) / **Error** (`#f87171`, red): completed vs. failed subsystem state.
+- **Flare** (`#eafcff`): a one-shot ignition-white flash on the status light the instant a subsystem completes, settling to the done green — the system's single reserved "moment of color," never used at rest.
+- Each mission-profile (domain) button keeps its own identity color from `pipelineStages.ts` (`DOMAINS[].color`) as a selection ring/dot — the one place a non-status hue is allowed, since it names a real choice (which dataset), not a live/done/error state.
+
+## Typography
+
+Geist Sans for headings, labels, hints, and button copy. IBM Plex Mono (tabular-nums) for anything that is a measured or logged value: the system clock, subsystem designation codes (`SYS·01`…`SYS·05`), subsystem readout text, mission-log timestamps and lines. No component mixes the two within one text run — the same rule the Audit Console system uses, carried over because it is the product's own "this number was computed, not guessed" language, not a per-route accident.
+
+## Layout
+
+Full-bleed single-viewport console: a slim header (callsign wordmark + system status + live clock), a five-column subsystem panel bank (collapses to 2 columns under 860px, 1 column under 420px), a control deck (mission-profile buttons + the arm/run control), and a mission-log strip pinned to the bottom edge with independent scroll. Main content is vertically centered in the space between header and log rather than top-aligned, so the console reads as one composed instrument rather than a page with a void beneath it.
+
+## Components
+
+- **Subsystem panel:** cells in a shared 1px-hairline bank (no per-cell shadow), each with a status light, mono designation code, title, and mono readout line that updates from the real pipeline event stream.
+- **Mission-profile card:** a bordered bezel button; selection state borrows the domain's own identity color as a ring + tinted fill.
+- **Initiate control:** solid armed-amber button, uppercase, the console's one high-emphasis control; disabled at 35% opacity until a profile is chosen.
+- **Mission log:** a fixed-height, internally-scrolling strip of real timestamped events (armed → subsystem transitions → sequence complete/aborted), auto-scrolling to the newest line.
+
+## Do's and Don'ts
+
+### Do:
+- **Do** keep monospace scoped to measured/logged content (clock, codes, readouts, log lines) and Geist Sans for everything else.
+- **Do** treat armed-amber as this route's only "live" signal — never blend it with Audit Console's signal-cyan on the same screen.
+- **Do** source mission-log content from real pipeline events only; no invented telemetry.
+
+### Don't:
+- **Don't** reintroduce the retired node-graph SVG (`PipelineGraph.tsx`, removed with this redesign) — the subsystem panel bank replaced it as the pipeline's visual representation on this route.
+- **Don't** carry this route's amber/status-light palette onto the dashboard, or the dashboard's signal-cyan onto this route — the two are intentionally separate worlds joined only by the same product and the same IBM Plex Mono "this is measured" convention.
