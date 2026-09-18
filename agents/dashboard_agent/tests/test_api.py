@@ -293,3 +293,103 @@ def test_run_pipeline_requires_a_domain(tmp_path):
     response = client.get("/api/pipeline/run")
 
     assert response.status_code == 422
+
+
+def _write_analytical_csv(tmp_path, domain, rows_csv):
+    path = tmp_path / f"analytical_table_{domain}.csv"
+    path.write_text(rows_csv)
+    return str(path)
+
+
+def _client_with_analytical_dir(tmp_path, monkeypatch):
+    # _analytical_path_for derives its directory from ANALYTICAL_TABLE_PATH
+    # (defaulting to data/processed/analytical_table.csv otherwise), same as
+    # _layout_path_for derives it from the layout_path passed to create_app.
+    monkeypatch.setenv("ANALYTICAL_TABLE_PATH", str(tmp_path / "analytical_table.csv"))
+    return TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+
+def test_drilldown_endpoint_returns_matching_rows(tmp_path, monkeypatch):
+    _write_analytical_csv(
+        tmp_path,
+        "e-commerce",
+        "order_id,order_status,price\no1,delivered,100.0\no2,canceled,999.0\n",
+    )
+    client = _client_with_analytical_dir(tmp_path, monkeypatch)
+
+    response = client.get(
+        "/api/drilldown", params={"domain": "e-commerce", "kpi": "total_revenue"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_rows"] == 1
+    assert body["columns"] == ["order_id", "order_status", "price"]
+    assert body["rows"] == [{"order_id": "o1", "order_status": "delivered", "price": 100.0}]
+
+
+def test_drilldown_endpoint_scopes_to_a_month(tmp_path, monkeypatch):
+    _write_analytical_csv(
+        tmp_path,
+        "banking",
+        "trans_id,type,amount,date\n"
+        "1,PRIJEM,100.0,2018-01-05\n"
+        "2,PRIJEM,200.0,2018-02-05\n",
+    )
+    client = _client_with_analytical_dir(tmp_path, monkeypatch)
+
+    response = client.get(
+        "/api/drilldown",
+        params={"domain": "banking", "kpi": "total_transaction_volume", "month": "2018-02"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_rows"] == 1
+    assert body["rows"][0]["trans_id"] == 2
+
+
+def test_drilldown_endpoint_returns_404_for_unknown_domain(tmp_path, monkeypatch):
+    client = _client_with_analytical_dir(tmp_path, monkeypatch)
+
+    response = client.get(
+        "/api/drilldown", params={"domain": "unknown", "kpi": "total_revenue"}
+    )
+
+    assert response.status_code == 404
+
+
+def test_drilldown_endpoint_returns_404_for_unknown_kpi(tmp_path, monkeypatch):
+    _write_analytical_csv(tmp_path, "e-commerce", "order_id,price\no1,100.0\n")
+    client = _client_with_analytical_dir(tmp_path, monkeypatch)
+
+    response = client.get(
+        "/api/drilldown", params={"domain": "e-commerce", "kpi": "not_a_real_kpi"}
+    )
+
+    assert response.status_code == 404
+
+
+def test_drilldown_endpoint_returns_404_when_no_analytical_table_exists(tmp_path, monkeypatch):
+    client = _client_with_analytical_dir(tmp_path, monkeypatch)
+
+    response = client.get(
+        "/api/drilldown", params={"domain": "telco", "kpi": "total_customers"}
+    )
+
+    assert response.status_code == 404
+
+
+def test_drilldown_endpoint_caps_rows_at_fifty(tmp_path, monkeypatch):
+    header = "order_id,order_status,price\n"
+    body_rows = "\n".join(f"o{i},delivered,10.0" for i in range(60))
+    _write_analytical_csv(tmp_path, "e-commerce", header + body_rows + "\n")
+    client = _client_with_analytical_dir(tmp_path, monkeypatch)
+
+    response = client.get(
+        "/api/drilldown", params={"domain": "e-commerce", "kpi": "order_count"}
+    )
+
+    body = response.json()
+    assert body["total_rows"] == 60
+    assert len(body["rows"]) == 50

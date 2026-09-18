@@ -9,6 +9,7 @@ import os
 import queue
 import threading
 
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -22,6 +23,7 @@ from agents.dashboard_agent.nl_query import (
     generate_answer,
 )
 from agents.dashboard_agent.report import build_pdf
+from agents.kpi_semantic_agent.row_filters import filter_rows
 from orchestrator.orchestrator import BIFlowOrchestrator, PipelineStageError
 from shared.schemas.data_contracts import RawDatasetRef
 
@@ -92,6 +94,19 @@ def create_app(
         base, ext = os.path.splitext(os.path.basename(resolved_analytical_path))
         return os.path.join(directory, f"{base}_{domain}{ext}")
 
+    _analytical_df_cache: dict[str, tuple[float, pd.DataFrame]] = {}
+
+    # Loads an analytical CSV into memory, cached by (path, mtime) so repeat
+    # drill-down requests don't re-read a potentially million-row file.
+    def _load_analytical_df(path: str) -> pd.DataFrame:
+        mtime = os.path.getmtime(path)
+        cached = _analytical_df_cache.get(path)
+        if cached and cached[0] == mtime:
+            return cached[1]
+        df = pd.read_csv(path, low_memory=False)
+        _analytical_df_cache[path] = (mtime, df)
+        return df
+
     # Simple liveness check for the API.
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -149,6 +164,26 @@ def create_app(
             raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
         with open(path) as f:
             return json.load(f)
+
+    DRILLDOWN_ROW_LIMIT = 50
+
+    # Serves the raw analytical-table rows behind one KPI's value, optionally scoped to a month.
+    @app.get("/api/drilldown")
+    def drilldown(domain: str, kpi: str, month: str | None = None) -> dict:
+        path = _analytical_path_for(domain)  # validates domain against ALLOWED_DOMAINS
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
+        df = _load_analytical_df(path)
+        try:
+            matching = filter_rows(df, domain, kpi, month)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"Unknown KPI: {kpi!r}")
+        page = matching.head(DRILLDOWN_ROW_LIMIT)
+        return {
+            "total_rows": int(len(matching)),
+            "columns": list(page.columns),
+            "rows": json.loads(page.to_json(orient="records")),
+        }
 
     # Serves a downloadable PDF snapshot of the current dashboard layout, optionally scoped to a domain.
     @app.get("/api/report.pdf")
