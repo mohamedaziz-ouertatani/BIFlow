@@ -90,6 +90,7 @@ def test_build_layout_includes_an_insight_entry_per_insight():
             "description": "Revenue dropped 20% vs February",
             "related_kpi": "total_revenue",
             "severity": "warning",
+            "month": None,
         }
     ]
 

@@ -20,6 +20,7 @@ export interface Insight {
   description: string;
   related_kpi: string;
   severity: "info" | "warning" | "critical" | string;
+  month?: string | null;
 }
 
 export interface MonthlyTrendPoint {
@@ -38,4 +39,10 @@ export interface DashboardLayout {
   monthly_trends: Record<string, MonthlyTrendPoint[]>;
   category_breakdowns?: Record<string, CategoryBreakdownPoint[]>;
   business_domain?: string;
+}
+
+export interface DrillDownResponse {
+  total_rows: number;
+  columns: string[];
+  rows: Record<string, unknown>[];
 }

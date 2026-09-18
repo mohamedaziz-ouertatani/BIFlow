@@ -117,6 +117,7 @@ def generate_monthly_trend_insights(
                 description=description,
                 related_kpi=metric_name,
                 severity=severity,
+                month=trend["latest_month"],
             )
         )
     return insights

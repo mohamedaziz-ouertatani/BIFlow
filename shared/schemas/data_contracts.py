@@ -70,6 +70,10 @@ class Insight(BaseModel):
     description: str
     related_kpi: str
     severity: str  # e.g. "info", "warning", "critical"
+    # The YYYY-MM this insight is about, for monthly-trend insights (drives
+    # the drill-down endpoint's month filter). None for threshold insights
+    # and insights with no time dimension.
+    month: str | None = None
 
 
 class AnalysisResult(BaseModel):
