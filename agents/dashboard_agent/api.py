@@ -31,11 +31,11 @@ DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000"]
 # allowlist rather than passed through as free text.
 ALLOWED_DOMAINS = {"e-commerce", "banking", "telco"}
 
-# Where each domain's raw sample dataset lives, for live-triggered runs.
+# Where each domain's full raw dataset lives, for live-triggered runs.
 DOMAIN_DATASETS: dict[str, tuple[str, str]] = {
-    "e-commerce": ("data/sample/olist", "olist"),
-    "banking": ("data/sample/banking", "banking"),
-    "telco": ("data/sample/telco", "telco"),
+    "e-commerce": ("data/raw/olist", "olist"),
+    "banking": ("data/raw/berka", "banking"),
+    "telco": ("data/raw/telco", "telco"),
 }
 
 _STATUS_TO_EVENT_TYPE = {

@@ -13,7 +13,7 @@ import os
 import pandas as pd
 
 RAW_DIR = "data/raw/telco"
-RAW_FILENAME = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+RAW_FILENAME = "customers.csv"
 SAMPLE_DIR = "data/sample/telco"
 SEED = 42
 N_CUSTOMERS = 500
