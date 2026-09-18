@@ -10,7 +10,7 @@ import styles from "./page.module.css";
 import QueryBox from "./QueryBox";
 import Sidebar from "./Sidebar";
 import TrendChart from "./TrendChart";
-import type { DashboardLayout, MonthlyComparison } from "./types";
+import type { DashboardLayout, Insight, KpiCard, MonthlyComparison } from "./types";
 
 const DIRECTION_ARROW: Record<string, string> = {
   increasing: "▲",
@@ -35,7 +35,32 @@ function ComparisonBadge({ comparison }: { comparison: MonthlyComparison }) {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const POLL_INTERVAL_MS = 5000;
 
-type TabId = "overview" | "trends" | "breakdowns" | "insights";
+type Attention = "critical" | "warning" | "info" | "none";
+
+const ATTENTION_RANK: Record<Attention, number> = { critical: 3, warning: 2, info: 1, none: 0 };
+
+// A KPI's attention level is the highest severity among the insights that reference it.
+function attentionFor(kpiName: string, insights: Insight[]): { level: Attention; count: number } {
+  let level: Attention = "none";
+  let count = 0;
+  for (const insight of insights) {
+    if (insight.related_kpi !== kpiName) continue;
+    count += 1;
+    const severity: Attention =
+      insight.severity === "critical" || insight.severity === "warning" ? insight.severity : "info";
+    if (ATTENTION_RANK[severity] > ATTENTION_RANK[level]) level = severity;
+  }
+  return { level, count };
+}
+
+function severityOf(insight: Insight): Attention {
+  return insight.severity === "critical" || insight.severity === "warning" ? insight.severity : "info";
+}
+
+function findingsText(level: Attention, count: number): string {
+  if (count === 0) return "No findings";
+  return `${count} ${level === "none" ? "info" : level}`;
+}
 
 type FetchState =
   | { status: "loading" }
@@ -81,7 +106,6 @@ function DashboardContent() {
   const [selectedKpiName, setSelectedKpiName] = useState<string | null>(null);
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [askOpen, setAskOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
 
   useEffect(() => {
     let cancelled = false;
@@ -126,15 +150,33 @@ function DashboardContent() {
   const criticalCount = insights.filter((i) => i.severity === "critical").length;
   const warningCount = insights.filter((i) => i.severity === "warning").length;
 
-  const tabs: { id: TabId; label: string; count: number | null }[] = [
-    { id: "overview", label: "Overview", count: data ? data.kpi_cards.length : null },
-    { id: "trends", label: "Trends", count: trendEntries.length },
-    { id: "breakdowns", label: "Breakdowns", count: breakdownEntries.length },
-    { id: "insights", label: "Insights", count: insights.length },
-  ];
+  const wall = useMemo(() => {
+    const cards = data?.kpi_cards ?? [];
+    return cards
+      .map((card, index) => ({ card, index, ...attentionFor(card.name, insights) }))
+      .sort((a, b) => ATTENTION_RANK[b.level] - ATTENTION_RANK[a.level] || a.index - b.index);
+  }, [data, insights]);
+
+  const rankedInsights = insights
+    .map((insight, index) => ({ insight, index }))
+    .sort(
+      (a, b) =>
+        ATTENTION_RANK[severityOf(b.insight)] - ATTENTION_RANK[severityOf(a.insight)] ||
+        a.index - b.index
+    );
+
+  const selectedCard = data?.kpi_cards.find((c) => c.name === selectedKpiName) ?? null;
+
+  const openKpi = (name: string) => {
+    setSelectedKpiName(name);
+    requestAnimationFrame(() =>
+      document.getElementById("audit-bay")?.scrollIntoView?.({ block: "nearest", behavior: "smooth" })
+    );
+  };
 
   return (
     <div className={styles.shell}>
+      <div className={styles.scanlines} aria-hidden="true" />
       <Sidebar
         domain={data ? data.business_domain : null}
         lastUpdated={lastUpdated}
@@ -154,223 +196,167 @@ function DashboardContent() {
         }`}
       >
         <main className={styles.mainContent}>
-          {state.status === "loading" && <p>Loading…</p>}
+          {state.status === "loading" && <p className={styles.statusLine}>Loading…</p>}
           {state.status === "no-data" && (
-            <p>No dashboard data yet — run the pipeline first.</p>
+            <p className={styles.statusLine}>No dashboard data yet — run the pipeline first.</p>
           )}
-          {state.status === "error" && <p className={styles.error}>{state.message}</p>}
+          {state.status === "error" && (
+            <p className={`${styles.statusLine} ${styles.error}`}>{state.message}</p>
+          )}
 
           {data && (
             <>
-              <div
-                className={styles.tabBar}
-                role="tablist"
-                aria-label="Dashboard sections"
-                onKeyDown={(event) => {
-                  const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
-                  let nextIndex: number | null = null;
-                  if (event.key === "ArrowRight") {
-                    nextIndex = (currentIndex + 1) % tabs.length;
-                  } else if (event.key === "ArrowLeft") {
-                    nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-                  } else if (event.key === "Home") {
-                    nextIndex = 0;
-                  } else if (event.key === "End") {
-                    nextIndex = tabs.length - 1;
-                  }
-                  if (nextIndex !== null) {
-                    event.preventDefault();
-                    const nextTab = tabs[nextIndex];
-                    setActiveTab(nextTab.id);
-                    document.getElementById(`tab-${nextTab.id}`)?.focus();
-                  }
-                }}
-              >
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    id={`tab-${tab.id}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab === tab.id}
-                    aria-controls={`panel-${tab.id}`}
-                    tabIndex={activeTab === tab.id ? 0 : -1}
-                    className={`${styles.tab} ${
-                      activeTab === tab.id ? styles.tabActive : ""
-                    } ${tab.id === "insights" && criticalCount > 0 ? styles.tabAttention : ""}`}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
-                    {tab.label}
-                    {tab.count !== null && (
-                      <span className={styles.tabCount}>{tab.count}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {activeTab === "overview" && (
-                <section
-                  id="panel-overview"
-                  role="tabpanel"
-                  aria-labelledby="tab-overview"
-                  className={styles.tabPanel}
-                >
-                  <p className={styles.sectionLabel}>KPIs</p>
-                  <div className={styles.kpiGrid}>
-                    {data.kpi_cards.map((card) => (
-                      <button
-                        key={card.name}
-                        type="button"
-                        className={styles.kpiCard}
-                        onClick={() =>
-                          setSelectedKpiName((current) =>
-                            current === card.name ? null : card.name
-                          )
-                        }
-                      >
-                        <div className={styles.kpiLabel}>{card.label}</div>
-                        <div className={styles.kpiValue}>{formatValue(card.name, card.value)}</div>
-                        {card.comparison && <ComparisonBadge comparison={card.comparison} />}
-                      </button>
-                    ))}
-                    {data.kpi_cards.length === 0 && (
-                      <p className={styles.noTrend}>No KPIs computed for this run.</p>
-                    )}
-                  </div>
-
-                  {selectedKpiName &&
-                    (() => {
-                      const selectedCard = data.kpi_cards.find(
-                        (c) => c.name === selectedKpiName
-                      );
-                      if (!selectedCard) return null;
+              <section className={styles.block} aria-labelledby="findings-heading">
+                <div className={styles.blockHead}>
+                  <h2 id="findings-heading" className={styles.blockTitle}>
+                    Findings
+                  </h2>
+                  <span className={styles.blockMeta}>
+                    {criticalCount === 0 && warningCount === 0
+                      ? `${insights.length} logged`
+                      : [
+                          criticalCount > 0 ? `${criticalCount} critical` : null,
+                          warningCount > 0 ? `${warningCount} warning` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                  </span>
+                </div>
+                {insights.length > 0 ? (
+                  <ul className={styles.insightList}>
+                    {rankedInsights.map(({ insight, index: i }) => {
+                      const isDrillable = insight.related_kpi !== "";
+                      const isSelected = selectedInsightIndex === i;
                       return (
-                        <KpiDetail
-                          card={selectedCard}
-                          trendSeries={data.monthly_trends[selectedKpiName]}
-                          insights={data.insights.filter(
-                            (insight) => insight.related_kpi === selectedKpiName
-                          )}
-                          domain={domain}
-                          onClose={() => setSelectedKpiName(null)}
-                        />
-                      );
-                    })()}
-                </section>
-              )}
-
-              {activeTab === "trends" && (
-                <section
-                  id="panel-trends"
-                  role="tabpanel"
-                  aria-labelledby="tab-trends"
-                  className={styles.tabPanel}
-                >
-                  <p className={styles.sectionLabel}>Monthly trends</p>
-                  {trendEntries.length > 0 ? (
-                    <div className={styles.chartGrid}>
-                      {trendEntries.map(([metric, series]) => (
-                        <TrendChart key={metric} metric={metric} series={series} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className={styles.noTrend}>No trend data available for this run.</p>
-                  )}
-                </section>
-              )}
-
-              {activeTab === "breakdowns" && (
-                <section
-                  id="panel-breakdowns"
-                  role="tabpanel"
-                  aria-labelledby="tab-breakdowns"
-                  className={styles.tabPanel}
-                >
-                  <p className={styles.sectionLabel}>Category breakdowns</p>
-                  {breakdownEntries.length > 0 ? (
-                    <div className={styles.breakdownsGrid}>
-                      {breakdownEntries.map(([breakdownKey, points]) => (
-                        <CategoryChart
-                          key={breakdownKey}
-                          breakdownKey={breakdownKey}
-                          points={points}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className={styles.noTrend}>No category breakdowns available for this run.</p>
-                  )}
-                </section>
-              )}
-
-              {activeTab === "insights" && (
-                <section
-                  id="panel-insights"
-                  role="tabpanel"
-                  aria-labelledby="tab-insights"
-                  className={styles.tabPanel}
-                >
-                  <p className={styles.sectionLabel}>
-                    Insights
-                    {(criticalCount > 0 || warningCount > 0) && (
-                      <span className={styles.sectionLabelDetail}>
-                        {criticalCount > 0 && ` ${criticalCount} critical`}
-                        {criticalCount > 0 && warningCount > 0 && ","}
-                        {warningCount > 0 && ` ${warningCount} warning`}
-                      </span>
-                    )}
-                  </p>
-                  {insights.length > 0 ? (
-                    <ul className={styles.insightList}>
-                      {insights.map((insight, i) => {
-                        const isDrillable = insight.related_kpi !== "";
-                        const isSelected = selectedInsightIndex === i;
-                        return (
-                          <li key={i} className={styles.insightRow}>
-                            {isDrillable ? (
+                        <li key={i} className={styles.insightRow}>
+                          {isDrillable ? (
+                            <div className={styles.insightLine}>
                               <button
                                 type="button"
                                 className={`${styles.insight} ${
                                   styles[`severity-${insight.severity}`] ?? ""
                                 }`}
                                 aria-expanded={isSelected}
-                                onClick={() =>
-                                  setSelectedInsightIndex(isSelected ? null : i)
-                                }
+                                onClick={() => setSelectedInsightIndex(isSelected ? null : i)}
                               >
                                 <span className={styles.insightText}>
                                   <strong>{insight.title}</strong> — {insight.description}
                                 </span>
                               </button>
-                            ) : (
-                              <div
-                                className={`${styles.insight} ${
-                                  styles[`severity-${insight.severity}`] ?? ""
-                                }`}
+                              <button
+                                type="button"
+                                className={styles.locateButton}
+                                aria-label={`Open ${insight.related_kpi} tile`}
+                                onClick={() => openKpi(insight.related_kpi)}
                               >
-                                <span className={styles.insightText}>
-                                  <strong>{insight.title}</strong> — {insight.description}
-                                </span>
-                              </div>
-                            )}
-                            {isDrillable && isSelected && domain && (
-                              <div className={styles.insightDrillDown}>
-                                <DrillDownPanel
-                                  domain={domain}
-                                  kpiName={insight.related_kpi}
-                                  month={insight.month}
-                                />
-                              </div>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <p className={styles.noTrend}>No insights generated for this run.</p>
+                                Open KPI
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              className={`${styles.insight} ${
+                                styles[`severity-${insight.severity}`] ?? ""
+                              }`}
+                            >
+                              <span className={styles.insightText}>
+                                <strong>{insight.title}</strong> — {insight.description}
+                              </span>
+                            </div>
+                          )}
+                          {isDrillable && isSelected && domain && (
+                            <div className={styles.insightDrillDown}>
+                              <DrillDownPanel
+                                domain={domain}
+                                kpiName={insight.related_kpi}
+                                month={insight.month}
+                              />
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className={styles.noTrend}>No insights generated for this run.</p>
+                )}
+              </section>
+
+              <section className={styles.block} aria-labelledby="wall-heading">
+                <div className={styles.blockHead}>
+                  <h2 id="wall-heading" className={styles.blockTitle}>
+                    KPI telemetry
+                  </h2>
+                  <span className={styles.blockMeta}>sorted by attention</span>
+                </div>
+                <div className={styles.wall}>
+                  {wall.map(({ card, index, level, count }) => (
+                    <KpiTile
+                      key={card.name}
+                      card={card}
+                      code={`KPI·${String(index + 1).padStart(2, "0")}`}
+                      level={level}
+                      count={count}
+                      selected={selectedKpiName === card.name}
+                      onSelect={() =>
+                        setSelectedKpiName((current) => (current === card.name ? null : card.name))
+                      }
+                    />
+                  ))}
+                  {wall.length === 0 && (
+                    <p className={styles.noTrend}>No KPIs computed for this run.</p>
                   )}
-                </section>
-              )}
+                </div>
+
+                {selectedCard && (
+                  <div id="audit-bay">
+                    <KpiDetail
+                      card={selectedCard}
+                      trendSeries={data.monthly_trends[selectedCard.name]}
+                      insights={data.insights.filter(
+                        (insight) => insight.related_kpi === selectedCard.name
+                      )}
+                      domain={domain}
+                      onClose={() => setSelectedKpiName(null)}
+                    />
+                  </div>
+                )}
+              </section>
+
+              <section className={styles.block} aria-labelledby="trends-heading">
+                <div className={styles.blockHead}>
+                  <h2 id="trends-heading" className={styles.blockTitle}>
+                    Monthly trends
+                  </h2>
+                  <span className={styles.blockMeta}>{trendEntries.length}</span>
+                </div>
+                {trendEntries.length > 0 ? (
+                  <div className={styles.chartGrid}>
+                    {trendEntries.map(([metric, series]) => (
+                      <TrendChart key={metric} metric={metric} series={series} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.noTrend}>No trend data available for this run.</p>
+                )}
+              </section>
+
+              <section className={styles.block} aria-labelledby="breakdowns-heading">
+                <div className={styles.blockHead}>
+                  <h2 id="breakdowns-heading" className={styles.blockTitle}>
+                    Category breakdowns
+                  </h2>
+                  <span className={styles.blockMeta}>{breakdownEntries.length}</span>
+                </div>
+                {breakdownEntries.length > 0 ? (
+                  <div className={styles.breakdownsGrid}>
+                    {breakdownEntries.map(([breakdownKey, points]) => (
+                      <CategoryChart key={breakdownKey} breakdownKey={breakdownKey} points={points} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.noTrend}>No category breakdowns available for this run.</p>
+                )}
+              </section>
             </>
           )}
         </main>
@@ -393,6 +379,46 @@ function DashboardContent() {
         )}
       </div>
     </div>
+  );
+}
+
+// One KPI as a status-lit tile: value, delta, one-line formula, and its finding count.
+function KpiTile({
+  card,
+  code,
+  level,
+  count,
+  selected,
+  onSelect,
+}: {
+  card: KpiCard;
+  code: string;
+  level: Attention;
+  count: number;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`${styles.tile} ${styles[`tile-${level}`]} ${selected ? styles.tileSelected : ""}`}
+      aria-pressed={selected}
+      onClick={onSelect}
+    >
+      <span className={styles.tileHead}>
+        <span className={styles.tileLight} aria-hidden="true" />
+        <span className={styles.tileCode}>{code}</span>
+        <span className={styles.tileFindings}>{findingsText(level, count)}</span>
+      </span>
+      <span className={styles.kpiLabel}>{card.label}</span>
+      <span className={styles.kpiValue}>{formatValue(card.name, card.value)}</span>
+      {card.comparison && <ComparisonBadge comparison={card.comparison} />}
+      {card.explanation && (
+        <span className={styles.tileFormula} title={card.explanation}>
+          {card.explanation}
+        </span>
+      )}
+    </button>
   );
 }
 

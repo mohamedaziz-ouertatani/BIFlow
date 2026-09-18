@@ -15,10 +15,6 @@ function mockFetchOnce(response: Partial<Response> & { jsonBody?: unknown }) {
   } as Response);
 }
 
-function goToTab(name: string) {
-  fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${name}`) }));
-}
-
 beforeEach(() => {
   mockSearchParams.get.mockReturnValue(null);
 });
@@ -28,7 +24,7 @@ afterEach(() => {
 });
 
 describe("DashboardPage", () => {
-  it("renders KPI cards on the Overview tab by default", async () => {
+  it("renders KPI tiles and the findings log together, without tabs", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [
         { name: "total_revenue", label: "Total revenue", value: 123.45 },
@@ -53,10 +49,41 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     expect(await screen.findByText("R$123.45")).toBeInTheDocument();
-    expect(screen.queryByText("Revenue up", { exact: false })).not.toBeInTheDocument();
+    expect(screen.getByText("Revenue up", { exact: false })).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
 
-  it("shows trend charts on the Trends tab", async () => {
+  it("sorts KPI tiles by attention, critical first, and shows each tile's formula", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [
+        { name: "order_count", label: "Order count", value: 10, explanation: "order_count = 10" },
+        { name: "total_revenue", label: "Total revenue", value: 5, explanation: "total_revenue = 5" },
+        { name: "average_review_score", label: "Review score", value: 4 },
+      ],
+      insights: [
+        { title: "Revenue crashed", description: "Down", related_kpi: "total_revenue", severity: "critical" },
+        { title: "Score note", description: "Fine", related_kpi: "average_review_score", severity: "warning" },
+      ],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    await screen.findByText("Order count");
+
+    const tiles = screen.getAllByRole("button", { pressed: false }).filter((b) =>
+      b.className.includes("tile")
+    );
+    expect(tiles.map((t) => within(t).getByText(/Total revenue|Review score|Order count/).textContent)).toEqual([
+      "Total revenue",
+      "Review score",
+      "Order count",
+    ]);
+    expect(screen.getByText("total_revenue = 5")).toBeInTheDocument();
+    expect(screen.getByText("No findings")).toBeInTheDocument();
+  });
+
+  it("shows trend charts on the same page", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [{ name: "total_revenue", label: "Total revenue", value: 123.45 }],
       insights: [],
@@ -71,12 +98,11 @@ describe("DashboardPage", () => {
 
     render(<DashboardPage />);
     await screen.findByText("R$123.45");
-    goToTab("Trends");
 
     expect(screen.getByText("Revenue")).toBeInTheDocument(); // trend chart label
   });
 
-  it("shows insights on their own tab", async () => {
+  it("lists insights in the findings log", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [{ name: "total_revenue", label: "Total revenue", value: 123.45 }],
       insights: [
@@ -93,8 +119,8 @@ describe("DashboardPage", () => {
 
     render(<DashboardPage />);
     await screen.findByText("R$123.45");
-    goToTab("Insights");
 
+    expect(screen.getByRole("heading", { name: "Findings" })).toBeInTheDocument();
     expect(screen.getByText("Revenue up", { exact: false })).toBeInTheDocument();
   });
 
@@ -116,8 +142,7 @@ describe("DashboardPage", () => {
     mockFetchOnce({ jsonBody: layout });
 
     render(<DashboardPage />);
-    await screen.findByRole("tab", { name: /overview/i });
-    goToTab("Insights");
+    await screen.findByRole("heading", { name: "Findings" });
     fireEvent.click(screen.getByText("Revenue up", { exact: false }));
 
     expect(await screen.findByText(/view underlying rows/i)).toBeInTheDocument();
@@ -140,8 +165,7 @@ describe("DashboardPage", () => {
     mockFetchOnce({ jsonBody: layout });
 
     render(<DashboardPage />);
-    await screen.findByRole("tab", { name: /overview/i });
-    goToTab("Insights");
+    await screen.findByRole("heading", { name: "Findings" });
 
     expect(
       screen.queryByRole("button", { name: /no month-over-month trends available/i })
@@ -331,7 +355,7 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Ask the dashboard")).toBeInTheDocument();
   });
 
-  it("renders a category breakdown chart on the Breakdowns tab when the API returns one", async () => {
+  it("renders a category breakdown chart when the API returns one", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [],
       insights: [],
@@ -347,7 +371,6 @@ describe("DashboardPage", () => {
 
     render(<DashboardPage />);
     await screen.findByText("Ask the dashboard");
-    goToTab("Breakdowns");
 
     expect(await screen.findByText("Revenue by category")).toBeInTheDocument();
   });
@@ -384,26 +407,6 @@ describe("DashboardPage", () => {
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
 
     jest.useRealTimers();
-  });
-
-  it("moves between tabs with arrow keys and updates aria-selected", async () => {
-    const layout: DashboardLayout = {
-      kpi_cards: [],
-      insights: [{ title: "Revenue up", description: "Grew 10%", related_kpi: "x", severity: "info" }],
-      monthly_trends: {},
-    };
-    mockFetchOnce({ jsonBody: layout });
-
-    render(<DashboardPage />);
-    await screen.findByText("Ask the dashboard");
-
-    const overviewTab = screen.getByRole("tab", { name: /^Overview/ });
-    expect(overviewTab).toHaveAttribute("aria-selected", "true");
-
-    fireEvent.keyDown(overviewTab, { key: "ArrowRight" });
-    const trendsTab = screen.getByRole("tab", { name: /^Trends/ });
-    expect(trendsTab).toHaveAttribute("aria-selected", "true");
-    expect(overviewTab).toHaveAttribute("aria-selected", "false");
   });
 
   it("refreshes immediately when the sidebar refresh button is clicked", async () => {

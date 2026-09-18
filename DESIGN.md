@@ -216,7 +216,7 @@ A 1.85rem square, 5px-radius, hairline-background glyph button (`×` character, 
 
 # Design System: Landing / Launch Console
 
-**Scope note:** everything above this line is the "Audit Console" system and applies only to the dashboard route (`/dashboard`). This section documents a second, deliberately separate visual world that applies only to the landing/launch route (`frontend/src/app/page.tsx`, styled by `frontend/src/app/landing.module.css`). The two systems intentionally do not share tokens — see the direction contract at `.impeccable/surfaces/frontend-src-app-page-tsx.md` for why. Do not merge these tokens into the Audit Console block above, and do not carry Audit Console's signal-cyan/lab-paper vocabulary onto this route.
+**Scope note:** everything above this line is the retired "Audit Console" system (lab-paper/signal-cyan, tabbed dashboard). It was replaced on 2026-09-18 by the Mission Control world documented here and in the Telemetry Wall section below; it is kept only as history and is no longer the target for `/dashboard`. This section documents the world that applies to the landing/launch route (`frontend/src/app/page.tsx`, `landing.module.css`) — see `.impeccable/surfaces/frontend-src-app-page-tsx.md`.
 
 ## Overview
 
@@ -268,3 +268,19 @@ Full-bleed single-viewport console: a slim header (callsign wordmark + system st
 ### Don't:
 - **Don't** reintroduce the retired node-graph SVG (`PipelineGraph.tsx`, removed with this redesign) — the subsystem panel bank replaced it as the pipeline's visual representation on this route.
 - **Don't** carry this route's amber/status-light palette onto the dashboard, or the dashboard's signal-cyan onto this route — the two are intentionally separate worlds joined only by the same product and the same IBM Plex Mono "this is measured" convention.
+
+---
+
+# Design System: Dashboard Telemetry Wall
+
+The dashboard (`frontend/src/app/dashboard/`, brief at `.impeccable/surfaces/frontend-src-app-dashboard-page-tsx.md`) extends the Mission Control world above. Structure was chosen from a composition round (seed key `a5876806`): **Telemetry Wall**. Mode: Operate.
+
+**Structure.** No tabs. Top bar (callsign, domain badge, refresh, back-to-landing, ask toggle, PDF, updated clock); **Findings** log (severity-sorted, critical first, capped and internally scrolling); **KPI telemetry** wall sorted by attention; an in-page audit bay (`KpiDetail`) under the wall for the selected KPI; **Monthly trends** and **Category breakdowns** below; the **Ask** box docked to the viewport bottom as a command line (`position: fixed`, hide toggle retained).
+
+**Attention model.** A KPI tile's status light comes only from the highest severity among insights whose `related_kpi` matches it: critical = red (pulsing when motion is allowed), warning = amber, info = hollow ring, none = idle grey with the text "No findings". "No findings" is deliberately never rendered as "healthy". Each tile carries value (mono, tabular), month-over-month badge, and its formula/explanation clamped to two lines, so traceability is visible without opening the tile.
+
+**Color rule.** Amber means needs attention (warning), red critical or a decreasing delta, green an increasing delta, and phosphor cyan-white (`#bfe6f2`) is data ink and selection only, never a status. Tokens (`--surface`, `--accent`, `--warning`, ...) are remapped on the dashboard's `.shell` so recharts, tooltips and drill-down tables inherit them without touching other routes. Radii are 4px; panels are hairline lattices, not shadowed cards; the one shadow is the audit bay.
+
+**Type.** Geist Sans for labels and copy; IBM Plex Mono tabular for values, formulas, codes (`KPI·01`), counts, timestamps and log lines. Section headings are real `h2`s with a mono count on the right, not kickers.
+
+**Don't.** Reintroduce tabs or a scroll-spy nav; use amber for selection or interaction; carry the retired lab-paper/signal-cyan palette back onto the dashboard.
