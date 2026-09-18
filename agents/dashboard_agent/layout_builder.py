@@ -66,6 +66,7 @@ def build_layout(analysis: AnalysisResult, kpis: KPICatalog) -> dict[str, Any]:
             "description": insight.description,
             "related_kpi": insight.related_kpi,
             "severity": insight.severity,
+            "month": insight.month,
         }
         for insight in analysis.insights
     ]

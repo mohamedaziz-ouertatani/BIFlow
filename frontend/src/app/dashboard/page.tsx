@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import CategoryChart from "./CategoryChart";
 import { formatMetricValue } from "./currency";
+import DrillDownPanel from "./DrillDownPanel";
 import KpiDetail from "./KpiDetail";
 import styles from "./page.module.css";
 import QueryBox from "./QueryBox";
@@ -78,6 +79,7 @@ function DashboardContent() {
   const [state, setState] = useState<FetchState>({ status: "loading" });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedKpiName, setSelectedKpiName] = useState<string | null>(null);
+  const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [askOpen, setAskOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
@@ -249,6 +251,7 @@ function DashboardContent() {
                           insights={data.insights.filter(
                             (insight) => insight.related_kpi === selectedKpiName
                           )}
+                          domain={domain}
                           onClose={() => setSelectedKpiName(null)}
                         />
                       );
@@ -319,18 +322,49 @@ function DashboardContent() {
                   </p>
                   {insights.length > 0 ? (
                     <ul className={styles.insightList}>
-                      {insights.map((insight, i) => (
-                        <li
-                          key={i}
-                          className={`${styles.insight} ${
-                            styles[`severity-${insight.severity}`] ?? ""
-                          }`}
-                        >
-                          <span className={styles.insightText}>
-                            <strong>{insight.title}</strong> — {insight.description}
-                          </span>
-                        </li>
-                      ))}
+                      {insights.map((insight, i) => {
+                        const isDrillable = insight.related_kpi !== "";
+                        const isSelected = selectedInsightIndex === i;
+                        return (
+                          <li key={i} className={styles.insightRow}>
+                            {isDrillable ? (
+                              <button
+                                type="button"
+                                className={`${styles.insight} ${
+                                  styles[`severity-${insight.severity}`] ?? ""
+                                }`}
+                                aria-expanded={isSelected}
+                                onClick={() =>
+                                  setSelectedInsightIndex(isSelected ? null : i)
+                                }
+                              >
+                                <span className={styles.insightText}>
+                                  <strong>{insight.title}</strong> — {insight.description}
+                                </span>
+                              </button>
+                            ) : (
+                              <div
+                                className={`${styles.insight} ${
+                                  styles[`severity-${insight.severity}`] ?? ""
+                                }`}
+                              >
+                                <span className={styles.insightText}>
+                                  <strong>{insight.title}</strong> — {insight.description}
+                                </span>
+                              </div>
+                            )}
+                            {isDrillable && isSelected && domain && (
+                              <div className={styles.insightDrillDown}>
+                                <DrillDownPanel
+                                  domain={domain}
+                                  kpiName={insight.related_kpi}
+                                  month={insight.month}
+                                />
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : (
                     <p className={styles.noTrend}>No insights generated for this run.</p>

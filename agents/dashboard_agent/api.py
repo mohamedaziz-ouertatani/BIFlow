@@ -9,18 +9,21 @@ import os
 import queue
 import threading
 
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from agents.dashboard_agent.agent import DEFAULT_LAYOUT_PATH
+from agents.data_engineering_agent.agent import DEFAULT_OUTPUT_PATH
 from agents.dashboard_agent.nl_query import (
     OllamaTimeoutError,
     OllamaUnavailableError,
     generate_answer,
 )
 from agents.dashboard_agent.report import build_pdf
+from agents.kpi_semantic_agent.row_filters import filter_rows
 from orchestrator.orchestrator import BIFlowOrchestrator, PipelineStageError
 from shared.schemas.data_contracts import RawDatasetRef
 
@@ -54,6 +57,7 @@ def create_app(
     resolved_layout_path = layout_path or os.environ.get(
         "DASHBOARD_LAYOUT_PATH", DEFAULT_LAYOUT_PATH
     )
+    resolved_analytical_path = os.environ.get("ANALYTICAL_TABLE_PATH", DEFAULT_OUTPUT_PATH)
     origins = allowed_origins or os.environ.get(
         "ALLOWED_ORIGINS", ",".join(DEFAULT_ALLOWED_ORIGINS)
     ).split(",")
@@ -77,6 +81,32 @@ def create_app(
         directory = os.path.dirname(resolved_layout_path) or "."
         return os.path.join(directory, f"dashboard_layout_{domain}.json")
 
+    # Resolves which analytical table CSV to read: a domain-specific one
+    # (written by a live-triggered run for that domain, e.g.
+    # analytical_table_banking.csv) when a domain is given, otherwise the
+    # path a domain-less CLI run writes to. Mirrors _layout_path_for.
+    def _analytical_path_for(domain: str | None) -> str:
+        if not domain:
+            return resolved_analytical_path
+        if domain not in ALLOWED_DOMAINS:
+            raise HTTPException(status_code=404, detail=f"Unknown domain: {domain!r}")
+        directory = os.path.dirname(resolved_analytical_path) or "."
+        base, ext = os.path.splitext(os.path.basename(resolved_analytical_path))
+        return os.path.join(directory, f"{base}_{domain}{ext}")
+
+    _analytical_df_cache: dict[str, tuple[float, pd.DataFrame]] = {}
+
+    # Loads an analytical CSV into memory, cached by (path, mtime) so repeat
+    # drill-down requests don't re-read a potentially million-row file.
+    def _load_analytical_df(path: str) -> pd.DataFrame:
+        mtime = os.path.getmtime(path)
+        cached = _analytical_df_cache.get(path)
+        if cached and cached[0] == mtime:
+            return cached[1]
+        df = pd.read_csv(path, low_memory=False)
+        _analytical_df_cache[path] = (mtime, df)
+        return df
+
     # Simple liveness check for the API.
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -88,6 +118,7 @@ def create_app(
     @app.get("/api/pipeline/run")
     def run_pipeline(domain: str) -> StreamingResponse:
         layout_path = _layout_path_for(domain)  # validates domain against ALLOWED_DOMAINS
+        analytical_path = _analytical_path_for(domain)
         dataset_path, dataset_name = DOMAIN_DATASETS[domain]
         events: queue.Queue[dict | None] = queue.Queue()
 
@@ -98,7 +129,11 @@ def create_app(
             events.put(payload)
 
         def run() -> None:
-            pipeline = BIFlowOrchestrator(dashboard_layout_path=layout_path, on_event=on_event)
+            pipeline = BIFlowOrchestrator(
+                analytical_path=analytical_path,
+                dashboard_layout_path=layout_path,
+                on_event=on_event,
+            )
             raw_dataset = RawDatasetRef(
                 dataset_path=dataset_path, dataset_name=dataset_name, business_domain=domain
             )
@@ -129,6 +164,26 @@ def create_app(
             raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
         with open(path) as f:
             return json.load(f)
+
+    DRILLDOWN_ROW_LIMIT = 50
+
+    # Serves the raw analytical-table rows behind one KPI's value, optionally scoped to a month.
+    @app.get("/api/drilldown")
+    def drilldown(domain: str, kpi: str, month: str | None = None) -> dict:
+        path = _analytical_path_for(domain)  # validates domain against ALLOWED_DOMAINS
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="No dashboard data yet — run the pipeline first.")
+        df = _load_analytical_df(path)
+        try:
+            matching = filter_rows(df, domain, kpi, month)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"Unknown KPI: {kpi!r}")
+        page = matching.head(DRILLDOWN_ROW_LIMIT)
+        return {
+            "total_rows": int(len(matching)),
+            "columns": list(page.columns),
+            "rows": json.loads(page.to_json(orient="records")),
+        }
 
     # Serves a downloadable PDF snapshot of the current dashboard layout, optionally scoped to a domain.
     @app.get("/api/report.pdf")
