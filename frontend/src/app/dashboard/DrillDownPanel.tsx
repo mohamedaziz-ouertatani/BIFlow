@@ -69,7 +69,7 @@ export default function DrillDownPanel({
         <div className={styles.drillPanel}>
           <p className={styles.drillSummary}>
             {formula && <span>{formula}</span>}
-            {month && <span> · {month}</span>}
+            {month && <span>{formula ? " · " : ""}{month}</span>}
             {(formula || month) && " · "}
             {state.data.total_rows} row{state.data.total_rows === 1 ? "" : "s"} matched
             {state.data.total_rows > state.data.rows.length &&

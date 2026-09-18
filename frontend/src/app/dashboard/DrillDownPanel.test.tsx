@@ -56,6 +56,18 @@ describe("DrillDownPanel", () => {
     expect(url).toContain("month=2018-02");
   });
 
+  it("does not start the summary with a separator when there is no formula", async () => {
+    mockFetchOnce({
+      jsonBody: { total_rows: 2, columns: ["order_id"], rows: [{ order_id: "o1" }, { order_id: "o2" }] },
+    });
+
+    render(<DrillDownPanel domain="e-commerce" kpiName="total_revenue" month="2018-08" />);
+    fireEvent.click(screen.getByText(/view underlying rows/i));
+
+    const summary = await screen.findByText(/2 rows matched/i);
+    expect(summary.textContent?.trim()).toBe("2018-08 · 2 rows matched");
+  });
+
   it("shows a note when the row cap is hit", async () => {
     mockFetchOnce({
       jsonBody: {
