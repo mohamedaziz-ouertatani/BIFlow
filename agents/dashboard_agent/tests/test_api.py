@@ -29,8 +29,10 @@ class _FakeOrchestrator:
     """Stands in for BIFlowOrchestrator: emits events without touching real data."""
 
     STAGES = ["data_engineering", "kpi_semantic", "bi_analyst", "dashboard", "auditor"]
+    last_analytical_path = None
 
-    def __init__(self, dashboard_layout_path, on_event):
+    def __init__(self, analytical_path, dashboard_layout_path, on_event):
+        _FakeOrchestrator.last_analytical_path = analytical_path
         self.on_event = on_event
 
     def run_pipeline(self, raw_dataset):
@@ -42,7 +44,7 @@ class _FakeOrchestrator:
 class _FailingFakeOrchestrator:
     """Fails partway through, like a real stage raising an exception."""
 
-    def __init__(self, dashboard_layout_path, on_event):
+    def __init__(self, analytical_path, dashboard_layout_path, on_event):
         self.on_event = on_event
 
     def run_pipeline(self, raw_dataset):
@@ -249,6 +251,15 @@ def test_run_pipeline_streams_a_stage_event_per_transition(tmp_path, monkeypatch
     assert events[-1] == {"type": "pipeline_succeeded"}
     stages_seen = {e["stage"] for e in events if "stage" in e}
     assert stages_seen == set(_FakeOrchestrator.STAGES)
+
+
+def test_run_pipeline_scopes_the_analytical_path_to_the_domain(tmp_path, monkeypatch):
+    monkeypatch.setattr("agents.dashboard_agent.api.BIFlowOrchestrator", _FakeOrchestrator)
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    client.get("/api/pipeline/run", params={"domain": "banking"})
+
+    assert _FakeOrchestrator.last_analytical_path.endswith("analytical_table_banking.csv")
 
 
 def test_run_pipeline_streams_failure_and_stops(tmp_path, monkeypatch):
