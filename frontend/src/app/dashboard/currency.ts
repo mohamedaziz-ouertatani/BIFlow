@@ -23,3 +23,19 @@ export function formatMetricValue(metricName: string, value: number): string {
     maximumFractionDigits: 2,
   }).format(value);
 }
+
+// Compact form for space-constrained contexts like chart axis ticks (e.g. "R$4k" instead of "R$4,000.00").
+export function formatMetricValueCompact(metricName: string, value: number): string {
+  const currency = METRIC_CURRENCY[metricName];
+  if (!currency) {
+    return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(
+      value,
+    );
+  }
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}

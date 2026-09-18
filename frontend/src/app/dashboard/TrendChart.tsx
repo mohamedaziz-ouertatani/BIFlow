@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatMetricValue } from "./currency";
+import { formatMetricValue, formatMetricValueCompact } from "./currency";
 import styles from "./page.module.css";
 import type { MonthlyTrendPoint } from "./types";
 
@@ -49,8 +49,8 @@ export default function TrendChart({
           />
           <YAxis
             tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }}
-            width={48}
-            tickFormatter={(value: number) => formatMetricValue(metric, value)}
+            width={64}
+            tickFormatter={(value: number) => formatMetricValueCompact(metric, value)}
           />
           <Tooltip
             contentStyle={{
