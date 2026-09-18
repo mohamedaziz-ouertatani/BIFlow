@@ -719,3 +719,7 @@ button.insight {
   top: 0;
   background: var(--surface);
 }
+
+.insightDrillDown {
+  padding: 0 1.1rem 0.85rem;
+}
