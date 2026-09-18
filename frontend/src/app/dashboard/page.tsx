@@ -249,6 +249,7 @@ function DashboardContent() {
                           insights={data.insights.filter(
                             (insight) => insight.related_kpi === selectedKpiName
                           )}
+                          domain={domain}
                           onClose={() => setSelectedKpiName(null)}
                         />
                       );

@@ -1,19 +1,22 @@
 "use client";
 
+import DrillDownPanel from "./DrillDownPanel";
 import styles from "./page.module.css";
 import TrendChart from "./TrendChart";
 import type { Insight, KpiCard, MonthlyTrendPoint } from "./types";
 
-// Expanded panel for a selected KPI: shows its explanation, trend chart, and related insights.
+// Expanded panel for a selected KPI: shows its explanation, trend chart, drill-down rows, and related insights.
 export default function KpiDetail({
   card,
   trendSeries,
   insights,
+  domain,
   onClose,
 }: {
   card: KpiCard;
   trendSeries: MonthlyTrendPoint[] | undefined;
   insights: Insight[];
+  domain: string | null;
   onClose: () => void;
 }) {
   return (
@@ -43,16 +46,21 @@ export default function KpiDetail({
         <p className={styles.noTrend}>No trend data available for this KPI.</p>
       )}
 
+      {domain && (
+        <DrillDownPanel domain={domain} kpiName={card.name} formula={card.explanation} />
+      )}
+
       {insights.length > 0 && (
         <ul className={styles.insightList}>
           {insights.map((insight, i) => (
-            <li
-              key={i}
-              className={`${styles.insight} ${styles[`severity-${insight.severity}`] ?? ""}`}
-            >
-              <span className={styles.insightText}>
-                <strong>{insight.title}</strong> — {insight.description}
-              </span>
+            <li key={i} className={styles.insightRow}>
+              <div
+                className={`${styles.insight} ${styles[`severity-${insight.severity}`] ?? ""}`}
+              >
+                <span className={styles.insightText}>
+                  <strong>{insight.title}</strong> — {insight.description}
+                </span>
+              </div>
             </li>
           ))}
         </ul>

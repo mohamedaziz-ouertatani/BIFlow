@@ -140,6 +140,45 @@ describe("DashboardPage", () => {
     expect(screen.queryByTestId("kpi-detail")).not.toBeInTheDocument();
   });
 
+  it("shows a drill-down toggle in the KPI detail panel when a domain is set", async () => {
+    mockSearchParams.get.mockReturnValue("e-commerce");
+    const layout: DashboardLayout = {
+      kpi_cards: [
+        {
+          name: "total_revenue",
+          label: "Total revenue",
+          value: 123.45,
+          explanation: "total_revenue = sum(price) = 123.45",
+        },
+      ],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    fireEvent.click(await screen.findByText("Total revenue"));
+
+    const detail = within(await screen.findByTestId("kpi-detail"));
+    expect(detail.getByText(/view underlying rows/i)).toBeInTheDocument();
+  });
+
+  it("does not show a drill-down toggle when no domain is set", async () => {
+    mockSearchParams.get.mockReturnValue(null);
+    const layout: DashboardLayout = {
+      kpi_cards: [{ name: "total_revenue", label: "Total revenue", value: 123.45 }],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+    fireEvent.click(await screen.findByText("Total revenue"));
+
+    const detail = within(await screen.findByTestId("kpi-detail"));
+    expect(detail.queryByText(/view underlying rows/i)).not.toBeInTheDocument();
+  });
+
   it("shows a month-over-month comparison badge when the KPI has one", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [
