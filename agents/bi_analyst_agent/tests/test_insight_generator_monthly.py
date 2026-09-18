@@ -107,6 +107,21 @@ def test_generate_monthly_trend_insights_uses_named_label_for_transaction_volume
     assert insights[0].title == "Transaction volume increasing month-over-month"
 
 
+def test_generate_monthly_trend_insights_sets_month_to_the_latest_month():
+    monthly_trends = {
+        "total_revenue": {
+            "previous_month": "2018-01",
+            "latest_month": "2018-02",
+            "previous_value": 100.0,
+            "latest_value": 150.0,
+            "pct_change": 50.0,
+            "direction": "increasing",
+        }
+    }
+    insights = generate_monthly_trend_insights(monthly_trends)
+    assert insights[0].month == "2018-02"
+
+
 def test_generate_monthly_trend_insights_explains_empty_trends_for_telco():
     insights = generate_monthly_trend_insights({}, "telco")
     assert len(insights) == 1
