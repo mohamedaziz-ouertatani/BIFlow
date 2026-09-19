@@ -5,6 +5,8 @@ from typing import Any, Protocol
 
 import httpx
 
+from shared.metrics import PERCENT_METRICS, format_percent
+
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:3b")
 
@@ -44,7 +46,14 @@ class _HttpClient(Protocol):
     def post(self, url: str, json: dict[str, Any], timeout: float) -> _HttpResponse: ...
 
 
-# Serializes KPI cards, monthly trends, and insights from the dashboard layout into a compact prompt-ready block.
+# Rate KPIs are stored as 0-1 fractions; showing them as percentages matches the dashboard and PDF.
+def _format_breakdown_value(metric: str, value: Any) -> Any:
+    if metric in PERCENT_METRICS and isinstance(value, (int, float)):
+        return format_percent(value)
+    return value
+
+
+# Serializes KPI cards, monthly trends, category breakdowns, and insights from the dashboard layout into a compact prompt-ready block.
 def build_context(layout: dict[str, Any]) -> str:
     """Turns the dashboard layout JSON into a compact plain-text block for the LLM prompt."""
     lines: list[str] = []
@@ -73,6 +82,17 @@ def build_context(layout: dict[str, Any]) -> str:
         for metric, series in monthly_trends.items():
             points = ", ".join(f"{p['month']}={p['value']}" for p in series)
             lines.append(f"- {metric}: {points}")
+
+    category_breakdowns = layout.get("category_breakdowns", {})
+    if category_breakdowns:
+        lines.append("Breakdowns:")
+        for key, points in category_breakdowns.items():
+            # Keys look like '<kpi>_by_<dimension>'; the KPI name decides whether values are rates.
+            metric = key.rpartition("_by_")[0] or key
+            formatted = ", ".join(
+                f"{p['label']}={_format_breakdown_value(metric, p['value'])}" for p in points
+            )
+            lines.append(f"- {key}: {formatted}")
 
     insights = layout.get("insights", [])
     if insights:

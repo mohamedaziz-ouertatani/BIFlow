@@ -88,6 +88,39 @@ def test_build_context_includes_business_domain_when_present():
     assert "banking" in context
 
 
+def test_build_context_includes_category_breakdowns():
+    layout = {
+        "kpi_cards": [],
+        "monthly_trends": {},
+        "insights": [],
+        "category_breakdowns": {
+            "total_revenue_by_category": [
+                {"label": "toys", "value": 900.5},
+                {"label": "books", "value": 300.0},
+            ]
+        },
+    }
+    context = build_context(layout)
+    assert "Breakdowns:" in context
+    assert "total_revenue_by_category: toys=900.5, books=300.0" in context
+
+
+def test_build_context_formats_rate_kpi_breakdowns_as_percentages():
+    layout = {
+        "kpi_cards": [],
+        "monthly_trends": {},
+        "insights": [],
+        "category_breakdowns": {
+            "loan_good_standing_rate_by_region": [
+                {"label": "Prague", "value": 0.9391},
+                {"label": "Brno", "value": 0.9},
+            ]
+        },
+    }
+    context = build_context(layout)
+    assert "loan_good_standing_rate_by_region: Prague=93.9%, Brno=90%" in context
+
+
 class _FakeResponse:
     def __init__(self, status_code, payload):
         self.status_code = status_code

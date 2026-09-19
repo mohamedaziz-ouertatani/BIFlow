@@ -293,8 +293,9 @@ logic so the two outputs agree.
 
 Design:
 [`docs/superpowers/specs/2026-09-16-nl-query-design.md`](superpowers/specs/2026-09-16-nl-query-design.md).
-`build_context(layout)` serializes the layout into a compact text block and
-`generate_answer` sends it, with the question, to a **local Ollama** server
+`build_context(layout)` serializes the layout (KPI cards, monthly trends,
+category/region breakdowns — rate KPIs shown as percentages — and insights)
+into a compact text block and `generate_answer` sends it, with the question, to a **local Ollama** server
 (`OLLAMA_URL`, default `http://localhost:11434`; `OLLAMA_MODEL`, default
 `qwen2.5:3b`). The system prompt restricts the model to the supplied data
 and treats the question as untrusted input; an answer that echoes the
