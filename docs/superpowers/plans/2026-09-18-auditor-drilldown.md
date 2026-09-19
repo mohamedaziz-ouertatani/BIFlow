@@ -1,6 +1,9 @@
 # Auditor/XAI drill-down in the dashboard Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status: implemented and merged.** The steps below were ticked in bulk after the
+> feature shipped, not one at a time as it was built.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Let a user click any KPI card or insight in the dashboard and see the actual analytical-table rows that produced it, alongside a plain-text trace of the formula/filter/row-count.
 
@@ -29,7 +32,7 @@
 **Interfaces:**
 - Produces: `Insight.month: str | None` (default `None`) — the `YYYY-MM` a monthly-trend insight is about, `None` for threshold insights and insights with no time dimension.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `agents/bi_analyst_agent/tests/test_insight_generator_monthly.py`:
 
@@ -49,12 +52,12 @@ def test_generate_monthly_trend_insights_sets_month_to_the_latest_month():
     assert insights[0].month == "2018-02"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest agents/bi_analyst_agent/tests/test_insight_generator_monthly.py::test_generate_monthly_trend_insights_sets_month_to_the_latest_month -v`
 Expected: FAIL — `AttributeError: 'Insight' object has no attribute 'month'`
 
-- [ ] **Step 3: Add the field to `Insight`**
+- [x] **Step 3: Add the field to `Insight`**
 
 In `shared/schemas/data_contracts.py`, change:
 
@@ -84,7 +87,7 @@ class Insight(BaseModel):
     month: str | None = None
 ```
 
-- [ ] **Step 4: Set `month` in `generate_monthly_trend_insights`**
+- [x] **Step 4: Set `month` in `generate_monthly_trend_insights`**
 
 In `agents/bi_analyst_agent/insight_generator.py`, change the `Insight(...)` construction inside `generate_monthly_trend_insights` (around line 114-120) from:
 
@@ -118,17 +121,17 @@ Leave `generate_insights` (threshold insights, top of the file) and the
 earlier `return [Insight(...)]` block) unchanged — both correctly default
 `month` to `None`.
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `python -m pytest agents/bi_analyst_agent/tests/test_insight_generator_monthly.py -v`
 Expected: all PASS, including the new test
 
-- [ ] **Step 6: Run the full bi_analyst_agent suite to confirm nothing else broke**
+- [x] **Step 6: Run the full bi_analyst_agent suite to confirm nothing else broke**
 
 Run: `python -m pytest agents/bi_analyst_agent/tests -q`
 Expected: all PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add shared/schemas/data_contracts.py agents/bi_analyst_agent/insight_generator.py agents/bi_analyst_agent/tests/test_insight_generator_monthly.py
@@ -147,7 +150,7 @@ git commit -m "Add Insight.month, set from monthly-trend insights"
 - Consumes: `Insight.month` (Task 1)
 - Produces: each dict in the dashboard layout's `"insights"` list gains a `"month"` key, consumed by the frontend in Task 10.
 
-- [ ] **Step 1: Update the existing test's expectation (this is also the failing-test step — the assertion is exact-equality, so it will fail until Step 3 lands)**
+- [x] **Step 1: Update the existing test's expectation (this is also the failing-test step — the assertion is exact-equality, so it will fail until Step 3 lands)**
 
 In `agents/dashboard_agent/tests/test_layout_builder.py`, change
 `test_build_layout_includes_an_insight_entry_per_insight`'s assertion from:
@@ -177,12 +180,12 @@ to:
     ]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest agents/dashboard_agent/tests/test_layout_builder.py::test_build_layout_includes_an_insight_entry_per_insight -v`
 Expected: FAIL — actual dict has no `"month"` key yet
 
-- [ ] **Step 3: Add `month` to the layout builder**
+- [x] **Step 3: Add `month` to the layout builder**
 
 In `agents/dashboard_agent/layout_builder.py`, change:
 
@@ -213,17 +216,17 @@ to:
     ]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest agents/dashboard_agent/tests/test_layout_builder.py -v`
 Expected: all PASS
 
-- [ ] **Step 5: Run the full dashboard_agent suite**
+- [x] **Step 5: Run the full dashboard_agent suite**
 
 Run: `python -m pytest agents/dashboard_agent/tests -q`
 Expected: all PASS (no other test asserts exact-equality on the insights list)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add agents/dashboard_agent/layout_builder.py agents/dashboard_agent/tests/test_layout_builder.py
@@ -242,7 +245,7 @@ git commit -m "Pass Insight.month through to the dashboard layout JSON"
 - Produces: `filter_rows(df: pd.DataFrame, business_domain: str, kpi_name: str, month: str | None = None) -> pd.DataFrame`, raising `KeyError` for an unknown `business_domain` or `kpi_name` (mirrors `compute_kpis`' own `raise KeyError(business_domain)`).
 - Produces: `DATE_COLUMN_BY_DOMAIN: dict[str, str | None]` — reused by Task 4 for nothing extra (kept local to this module); documented here for Task 6's reference.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `agents/kpi_semantic_agent/tests/test_row_filters.py`:
 
@@ -370,12 +373,12 @@ def test_filter_rows_telco_ignores_month_since_there_is_no_date_column():
     assert len(result) == 2
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest agents/kpi_semantic_agent/tests/test_row_filters.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'agents.kpi_semantic_agent.row_filters'`
 
-- [ ] **Step 3: Create `row_filters.py`**
+- [x] **Step 3: Create `row_filters.py`**
 
 Create `agents/kpi_semantic_agent/row_filters.py`:
 
@@ -451,12 +454,12 @@ def filter_rows(
     return matching
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest agents/kpi_semantic_agent/tests/test_row_filters.py -v`
 Expected: all PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/kpi_semantic_agent/row_filters.py agents/kpi_semantic_agent/tests/test_row_filters.py
@@ -478,12 +481,12 @@ git commit -m "Add row_filters.py: one row-level filter definition per KPI"
 KPIs inline a filter condition today (each already just uses `df`
 directly), so there's nothing to extract.
 
-- [ ] **Step 1: Confirm the existing tests currently pass (baseline before refactor)**
+- [x] **Step 1: Confirm the existing tests currently pass (baseline before refactor)**
 
 Run: `python -m pytest agents/kpi_semantic_agent/tests/test_kpi_computation.py -v`
 Expected: all PASS (this is the baseline — Step 3 must not change this)
 
-- [ ] **Step 2: Add the import**
+- [x] **Step 2: Add the import**
 
 In `agents/kpi_semantic_agent/kpi_computation.py`, add after the existing imports:
 
@@ -491,7 +494,7 @@ In `agents/kpi_semantic_agent/kpi_computation.py`, add after the existing import
 from agents.kpi_semantic_agent.row_filters import filter_rows
 ```
 
-- [ ] **Step 3: Refactor `_compute_ecommerce_kpis`**
+- [x] **Step 3: Refactor `_compute_ecommerce_kpis`**
 
 Change:
 
@@ -552,7 +555,7 @@ def _compute_ecommerce_kpis(df: pd.DataFrame) -> dict[str, Any]:
 
 (The rest of the function, including the final `return` dict, is unchanged.)
 
-- [ ] **Step 4: Refactor `_compute_banking_kpis`**
+- [x] **Step 4: Refactor `_compute_banking_kpis`**
 
 Change:
 
@@ -599,17 +602,17 @@ def _compute_banking_kpis(df: pd.DataFrame) -> dict[str, Any]:
 
 (The rest of the function, including the final `return` dict, is unchanged.)
 
-- [ ] **Step 5: Run tests to verify nothing changed**
+- [x] **Step 5: Run tests to verify nothing changed**
 
 Run: `python -m pytest agents/kpi_semantic_agent/tests/test_kpi_computation.py -v`
 Expected: all PASS, identical to Step 1's baseline
 
-- [ ] **Step 6: Run the full kpi_semantic_agent suite and the end-to-end pipeline test**
+- [x] **Step 6: Run the full kpi_semantic_agent suite and the end-to-end pipeline test**
 
 Run: `python -m pytest agents/kpi_semantic_agent/tests tests/test_end_to_end.py -q`
 Expected: all PASS — confirms the refactor doesn't change any KPI value across the real sample datasets
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add agents/kpi_semantic_agent/kpi_computation.py
@@ -634,7 +637,7 @@ run back-to-back overwrite the same `data/processed/analytical_table.csv`.
 Task 6's drill-down endpoint reads that file, so it must be domain-scoped
 first or drill-down could silently show the wrong domain's rows.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 The existing fakes in `agents/dashboard_agent/tests/test_api.py` only
 accept `dashboard_layout_path` and `on_event` — add `analytical_path` to
@@ -714,7 +717,7 @@ def test_run_pipeline_scopes_the_analytical_path_to_the_domain(tmp_path, monkeyp
     assert _FakeOrchestrator.last_analytical_path.endswith("analytical_table_banking.csv")
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest agents/dashboard_agent/tests/test_api.py -k run_pipeline -v`
 Expected: `test_run_pipeline_streams_a_stage_event_per_transition` and
@@ -723,7 +726,7 @@ Expected: `test_run_pipeline_streams_a_stage_event_per_transition` and
 (the fakes now require it, but `api.py` doesn't pass it yet); the new
 scoping test FAILs the same way.
 
-- [ ] **Step 3: Add `_analytical_path_for` and pass it through**
+- [x] **Step 3: Add `_analytical_path_for` and pass it through**
 
 In `agents/dashboard_agent/api.py`, add the import:
 
@@ -789,12 +792,12 @@ to:
             )
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest agents/dashboard_agent/tests/test_api.py -v`
 Expected: all PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/dashboard_agent/api.py agents/dashboard_agent/tests/test_api.py
@@ -813,7 +816,7 @@ git commit -m "Domain-scope the analytical table path for live-triggered pipelin
 - Consumes: `filter_rows` (Task 3), `_analytical_path_for` (Task 5).
 - Produces: `GET /api/drilldown?domain=&kpi=&month=` → `{"total_rows": int, "columns": list[str], "rows": list[dict]}`, 404 for an unknown domain/kpi or a missing analytical file.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `agents/dashboard_agent/tests/test_api.py`:
 
@@ -918,12 +921,12 @@ def test_drilldown_endpoint_caps_rows_at_fifty(tmp_path, monkeypatch):
     assert len(body["rows"]) == 50
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest agents/dashboard_agent/tests/test_api.py -k drilldown -v`
 Expected: FAIL — `404 Not Found` for the app (no `/api/drilldown` route registered yet)
 
-- [ ] **Step 3: Add the endpoint**
+- [x] **Step 3: Add the endpoint**
 
 In `agents/dashboard_agent/api.py`, add imports:
 
@@ -975,17 +978,17 @@ After the `/api/dashboard` route, add:
         }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest agents/dashboard_agent/tests/test_api.py -v`
 Expected: all PASS
 
-- [ ] **Step 5: Run the full dashboard_agent suite**
+- [x] **Step 5: Run the full dashboard_agent suite**
 
 Run: `python -m pytest agents/dashboard_agent/tests -q`
 Expected: all PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add agents/dashboard_agent/api.py agents/dashboard_agent/tests/test_api.py
@@ -1002,7 +1005,7 @@ git commit -m "Add GET /api/drilldown endpoint"
 **Interfaces:**
 - Produces: `Insight.month?: string | null`, `DrillDownResponse` type — consumed by Task 8, 9, 10.
 
-- [ ] **Step 1: Update `types.ts`**
+- [x] **Step 1: Update `types.ts`**
 
 In `frontend/src/app/dashboard/types.ts`, change:
 
@@ -1037,12 +1040,12 @@ export interface DrillDownResponse {
 }
 ```
 
-- [ ] **Step 2: Run the frontend build/typecheck to confirm nothing else broke**
+- [x] **Step 2: Run the frontend build/typecheck to confirm nothing else broke**
 
 Run: `cd frontend && npx tsc --noEmit`
 Expected: no new type errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/app/dashboard/types.ts
@@ -1062,7 +1065,7 @@ git commit -m "Add Insight.month and DrillDownResponse types"
 - Consumes: `DrillDownResponse` (Task 7).
 - Produces: `DrillDownPanel({ domain: string; kpiName: string; month?: string | null; formula?: string | null })` — a React component, default export. Consumed by Task 9 and Task 10.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `frontend/src/app/dashboard/DrillDownPanel.test.tsx`:
 
@@ -1164,12 +1167,12 @@ describe("DrillDownPanel", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd frontend && npx jest DrillDownPanel.test.tsx`
 Expected: FAIL — cannot find module `./DrillDownPanel`
 
-- [ ] **Step 3: Create `DrillDownPanel.tsx`**
+- [x] **Step 3: Create `DrillDownPanel.tsx`**
 
 Create `frontend/src/app/dashboard/DrillDownPanel.tsx`:
 
@@ -1282,7 +1285,7 @@ export default function DrillDownPanel({
 }
 ```
 
-- [ ] **Step 4: Append the new CSS classes**
+- [x] **Step 4: Append the new CSS classes**
 
 Append to the end of `frontend/src/app/dashboard/page.module.css`:
 
@@ -1348,12 +1351,12 @@ Append to the end of `frontend/src/app/dashboard/page.module.css`:
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd frontend && npx jest DrillDownPanel.test.tsx`
 Expected: all PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/app/dashboard/DrillDownPanel.tsx frontend/src/app/dashboard/DrillDownPanel.test.tsx frontend/src/app/dashboard/page.module.css
@@ -1383,7 +1386,7 @@ and sometimes hold an expanded panel below it. This task updates
 markup shape so both files stay consistent; Task 10 does the same for the
 main Insights tab.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `frontend/src/app/dashboard/page.test.tsx`, after the existing
 `"shows a KPI's explanation and related insights when its card is clicked"`
@@ -1430,12 +1433,12 @@ test:
   });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd frontend && npx jest page.test.tsx -t "drill-down"`
 Expected: FAIL — `KpiDetail` doesn't render a "View underlying rows" toggle yet (`domain` prop doesn't exist)
 
-- [ ] **Step 3: Update `KpiDetail.tsx`**
+- [x] **Step 3: Update `KpiDetail.tsx`**
 
 Replace the full contents of `frontend/src/app/dashboard/KpiDetail.tsx`
 with:
@@ -1513,7 +1516,7 @@ export default function KpiDetail({
 }
 ```
 
-- [ ] **Step 4: Update the `KpiDetail` call site in `page.tsx`**
+- [x] **Step 4: Update the `KpiDetail` call site in `page.tsx`**
 
 In `frontend/src/app/dashboard/page.tsx`, change:
 
@@ -1546,7 +1549,7 @@ to:
                       );
 ```
 
-- [ ] **Step 5: Update the `.insight` CSS**
+- [x] **Step 5: Update the `.insight` CSS**
 
 In `frontend/src/app/dashboard/page.module.css`, change:
 
@@ -1600,7 +1603,7 @@ unchanged — they still target the element carrying both `.insight` and
 `.severity-<level>`, which is now the inner `<div>`/`<button>` instead of
 the `<li>`.)
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `cd frontend && npx jest page.test.tsx`
 Expected: all PASS, including the two new tests and every pre-existing
@@ -1608,7 +1611,7 @@ Expected: all PASS, including the two new tests and every pre-existing
 `null` by default via `beforeEach`, so `KpiDetail` renders without the new
 drill-down toggle in those — unaffected)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/src/app/dashboard/KpiDetail.tsx frontend/src/app/dashboard/page.tsx frontend/src/app/dashboard/page.module.css frontend/src/app/dashboard/page.test.tsx
@@ -1627,7 +1630,7 @@ git commit -m "Wire DrillDownPanel into the KPI detail panel"
 **Interfaces:**
 - Consumes: `DrillDownPanel` (Task 8), `.insightRow`/`.insight` (Task 9).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to `frontend/src/app/dashboard/page.test.tsx`:
 
@@ -1686,12 +1689,12 @@ Add to `frontend/src/app/dashboard/page.test.tsx`:
   });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd frontend && npx jest page.test.tsx -t "drill-down panel when an insight"`
 Expected: FAIL — insights aren't clickable yet, no drill-down toggle appears
 
-- [ ] **Step 3: Add `selectedInsightIndex` state**
+- [x] **Step 3: Add `selectedInsightIndex` state**
 
 In `frontend/src/app/dashboard/page.tsx`, change:
 
@@ -1706,7 +1709,7 @@ to:
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
 ```
 
-- [ ] **Step 4: Rewrite the Insights tab section**
+- [x] **Step 4: Rewrite the Insights tab section**
 
 In `frontend/src/app/dashboard/page.tsx`, change:
 
@@ -1785,7 +1788,7 @@ to:
                   )}
 ```
 
-- [ ] **Step 5: Add the `DrillDownPanel` import**
+- [x] **Step 5: Add the `DrillDownPanel` import**
 
 In `frontend/src/app/dashboard/page.tsx`, change:
 
@@ -1800,7 +1803,7 @@ import CategoryChart from "./CategoryChart";
 import DrillDownPanel from "./DrillDownPanel";
 ```
 
-- [ ] **Step 6: Append the `.insightDrillDown` CSS class**
+- [x] **Step 6: Append the `.insightDrillDown` CSS class**
 
 Append to `frontend/src/app/dashboard/page.module.css`:
 
@@ -1810,17 +1813,17 @@ Append to `frontend/src/app/dashboard/page.module.css`:
 }
 ```
 
-- [ ] **Step 7: Run tests to verify they pass**
+- [x] **Step 7: Run tests to verify they pass**
 
 Run: `cd frontend && npx jest page.test.tsx`
 Expected: all PASS
 
-- [ ] **Step 8: Run the full frontend test suite**
+- [x] **Step 8: Run the full frontend test suite**
 
 Run: `cd frontend && npm test`
 Expected: all PASS
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add frontend/src/app/dashboard/page.tsx frontend/src/app/dashboard/page.module.css frontend/src/app/dashboard/page.test.tsx
@@ -1831,12 +1834,12 @@ git commit -m "Make insights with a related KPI drillable"
 
 ## Final verification
 
-- [ ] Run the full backend suite: `python -m pytest -q` — expect only the
+- [x] Run the full backend suite: `python -m pytest -q` — expect only the
       4 pre-existing Postgres-connectivity failures (no local Postgres
       running), everything else PASS.
-- [ ] Run the full frontend suite: `cd frontend && npm test` — expect all
+- [x] Run the full frontend suite: `cd frontend && npm test` — expect all
       PASS.
-- [ ] Manually smoke-test: start `biflow-api` and `biflow-frontend`
+- [x] Manually smoke-test: start `biflow-api` and `biflow-frontend`
       (`.claude/launch.json`), trigger a live pipeline run for one domain,
       open its dashboard, click a KPI card and a drillable insight, confirm
       the "View underlying rows" toggle fetches and renders a row table.

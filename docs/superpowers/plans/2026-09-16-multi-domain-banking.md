@@ -1,6 +1,9 @@
 # Multi-domain support (banking) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status: implemented and merged.** The steps below were ticked in bulk after the
+> feature shipped, not one at a time as it was built.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Generalize BIFlow's per-agent hardcoded Olist/e-commerce logic into a per-domain dict-registry pattern, and implement a second, fully working domain — banking, using the Berka dataset — end to end through profiling, cleaning, ETL, KPIs, trends, and the dashboard.
 
@@ -58,7 +61,7 @@
 
 This is a data-prep task (no application code), so it has no failing-test step — verification is a direct row-count/column check instead of pytest.
 
-- [ ] **Step 1: Write the sample-generation script**
+- [x] **Step 1: Write the sample-generation script**
 
 ```python
 """One-off script: builds data/sample/banking/ from data/raw/berka/.
@@ -129,13 +132,13 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Run the script and verify output**
+- [x] **Step 2: Run the script and verify output**
 
 Run: `python scripts/build_banking_sample.py`
 
 Expected: prints row counts for all 8 tables, `trans` has at least several hundred rows, and "spans N distinct months" reports N >= 2 (required for the monthly-trend tests in Task 10 to have real data to compare — if N < 2, increase `N_ACCOUNTS` and rerun).
 
-- [ ] **Step 3: Update the sample data README**
+- [x] **Step 3: Update the sample data README**
 
 Add to `data/sample/README.md` (append after the existing "Full dataset" section):
 
@@ -169,7 +172,7 @@ local dev/tests.
 
 Replace the "see script output" placeholders with the actual counts printed in Step 2.
 
-- [ ] **Step 4: Confirm `data/raw/berka` stays gitignored, commit the sample**
+- [x] **Step 4: Confirm `data/raw/berka` stays gitignored, commit the sample**
 
 Run: `git check-ignore data/raw/berka/account.csv` — expected: prints the path (confirms it's ignored, same as `data/raw/olist`). If it doesn't print anything, check `.gitignore` for a `data/raw/` pattern before continuing.
 
@@ -190,7 +193,7 @@ git commit -m "Add banking sample dataset (Berka, 25 accounts)"
 - Consumes: `data/sample/banking/` from Task 1.
 - Produces: `load_all_tables(dataset_dir: str, business_domain: str) -> dict[str, pd.DataFrame]` (signature changed — now requires `business_domain`). `profile_dataset(raw_dataset: RawDatasetRef) -> ProfilingReport` (signature unchanged, now passes `raw_dataset.business_domain` through internally). Later tasks (`agent.py` in Task 5) call `load_all_tables(dataset_path, business_domain)`.
 
-- [ ] **Step 1: Update `test_load_all_tables_loads_every_olist_table_by_logical_name` for the new signature, add a banking test**
+- [x] **Step 1: Update `test_load_all_tables_loads_every_olist_table_by_logical_name` for the new signature, add a banking test**
 
 In `agents/data_engineering_agent/tests/test_profiler.py`, change:
 
@@ -253,12 +256,12 @@ def test_profile_dataset_aggregates_banking_tables_into_one_report():
     assert "account.account_id" in report.column_types
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest agents/data_engineering_agent/tests/test_profiler.py -v`
 Expected: FAIL — `load_all_tables() missing 1 required positional argument: 'business_domain'` and `NameError`/`KeyError` for the new banking tests.
 
-- [ ] **Step 3: Implement per-domain table loading**
+- [x] **Step 3: Implement per-domain table loading**
 
 Replace the top of `agents/data_engineering_agent/profiler.py`:
 
@@ -322,12 +325,12 @@ def profile_dataset(raw_dataset: RawDatasetRef) -> ProfilingReport:
 
 (rest of the function body unchanged).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest agents/data_engineering_agent/tests/test_profiler.py -v`
 Expected: PASS (6 existing + 2 new tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/data_engineering_agent/profiler.py agents/data_engineering_agent/tests/test_profiler.py
@@ -347,7 +350,7 @@ git commit -m "profiler.py: load tables per business_domain"
 
 Banking dates are `YYMMDD` integers (e.g. `930101`), which don't match e-commerce's `_date`/`_at` suffix heuristic (column names are just `date`/`issued`), so banking gets an explicit `(table, column) -> strptime format` map instead.
 
-- [ ] **Step 1: Update existing cleaner tests for the new signature, add banking tests**
+- [x] **Step 1: Update existing cleaner tests for the new signature, add banking tests**
 
 In `agents/data_engineering_agent/tests/test_cleaner.py`, add `"e-commerce"` as the second argument to all 4 existing `clean_tables(tables)` calls, e.g.:
 
@@ -401,12 +404,12 @@ def test_clean_tables_normalizes_vyber_transaction_type_to_vydaj():
     assert any("normalized 1 'VYBER' transaction types to 'VYDAJ'" in t for t in transformations)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest agents/data_engineering_agent/tests/test_cleaner.py -v`
 Expected: FAIL — `clean_tables() missing 1 required positional argument: 'business_domain'`
 
-- [ ] **Step 3: Implement per-domain cleaning**
+- [x] **Step 3: Implement per-domain cleaning**
 
 Replace the full contents of `agents/data_engineering_agent/cleaner.py`:
 
@@ -509,12 +512,12 @@ def clean_tables(
     return cleaned, transformations
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest agents/data_engineering_agent/tests/test_cleaner.py -v`
 Expected: PASS (4 existing + 3 new tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/data_engineering_agent/cleaner.py agents/data_engineering_agent/tests/test_cleaner.py
@@ -532,7 +535,7 @@ git commit -m "cleaner.py: per-domain cleaning rules, add banking date parsing +
 **Interfaces:**
 - Produces: `build_analytical_table(tables: dict[str, pd.DataFrame], business_domain: str) -> pd.DataFrame` and `run_etl(cleaned_tables: dict[str, pd.DataFrame], output_path: str, business_domain: str, database_url: str | None = None) -> tuple[str, list[str]]` (both signatures changed — `business_domain` added). Banking analytical columns produced: all of `trans.csv`'s columns (`trans_id`, `account_id`, `date`, `type`, `operation`, `amount`, `balance`, `k_symbol`, `bank`, `account`) plus `district_id`, `frequency` (from `account`), `region` (from `district`), `loan_status` (from `loan`), `type_label` (derived).
 
-- [ ] **Step 1: Update existing ETL tests for the new signature, add banking tests**
+- [x] **Step 1: Update existing ETL tests for the new signature, add banking tests**
 
 In `agents/data_engineering_agent/tests/test_etl.py`, add `"e-commerce"` as the second argument to every `build_analytical_table(tables)` call (4 occurrences) and every `run_etl(tables, output_path, ...)` call (2 occurrences: `run_etl(tables, output_path, "e-commerce")` and `run_etl(tables, output_path, "e-commerce", database_url=TEST_DATABASE_URL)`).
 
@@ -597,12 +600,12 @@ def test_run_etl_writes_banking_analytical_table_to_output_path(tmp_path):
     assert "type_label" in written.columns
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest agents/data_engineering_agent/tests/test_etl.py -v -k "not postgres and not load_to_postgres"`
 Expected: FAIL — `build_analytical_table() missing 1 required positional argument: 'business_domain'`
 
-- [ ] **Step 3: Implement per-domain ETL**
+- [x] **Step 3: Implement per-domain ETL**
 
 Replace the full contents of `agents/data_engineering_agent/etl.py`:
 
@@ -733,14 +736,14 @@ def load_to_postgres(df: pd.DataFrame, table_name: str, database_url: str) -> No
     df.to_sql(table_name, engine, if_exists="replace", index=False)
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest agents/data_engineering_agent/tests/test_etl.py -v -k "not postgres and not load_to_postgres"`
 Expected: PASS (non-Postgres tests: 4 existing e-commerce + 1 write test + 5 new banking tests)
 
 (Postgres-dependent tests require a live DB per the project's existing setup — run the full file with `pytest agents/data_engineering_agent/tests/test_etl.py -v` only if Postgres is running, same as today.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/data_engineering_agent/etl.py agents/data_engineering_agent/tests/test_etl.py
@@ -759,7 +762,7 @@ git commit -m "etl.py: per-domain analytical table, add banking transaction-leve
 - Consumes: `load_all_tables(dataset_dir, business_domain)` (Task 2), `clean_tables(tables, business_domain)` (Task 3), `run_etl(cleaned_tables, output_path, business_domain, database_url=None)` (Task 4).
 - Produces: `DataEngineeringAgent.run(raw_dataset: RawDatasetRef) -> CleanedDataset` — signature unchanged (it already reads `business_domain` off `raw_dataset`).
 
-- [ ] **Step 1: Add a banking integration test**
+- [x] **Step 1: Add a banking integration test**
 
 Add to `agents/data_engineering_agent/tests/test_data_engineering_agent.py`:
 
@@ -787,12 +790,12 @@ def test_agent_run_produces_cleaned_dataset_from_sample_banking(tmp_path):
     assert len(written) > 0
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest agents/data_engineering_agent/tests/test_data_engineering_agent.py::test_agent_run_produces_cleaned_dataset_from_sample_banking -v`
 Expected: FAIL — `load_all_tables() missing 1 required positional argument` (agent.py doesn't pass `business_domain` yet)
 
-- [ ] **Step 3: Wire `business_domain` through `DataEngineeringAgent.run`**
+- [x] **Step 3: Wire `business_domain` through `DataEngineeringAgent.run`**
 
 In `agents/data_engineering_agent/agent.py`, replace the `run` method body:
 
@@ -818,12 +821,12 @@ In `agents/data_engineering_agent/agent.py`, replace the `run` method body:
         )
 ```
 
-- [ ] **Step 4: Run all data_engineering_agent tests to verify they pass**
+- [x] **Step 4: Run all data_engineering_agent tests to verify they pass**
 
 Run: `pytest agents/data_engineering_agent/ -v -k "not postgres and not load_to_postgres"`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/data_engineering_agent/agent.py agents/data_engineering_agent/tests/test_data_engineering_agent.py
@@ -841,7 +844,7 @@ git commit -m "data_engineering_agent: thread business_domain through profiling/
 **Interfaces:**
 - Produces: `get_kpi_definitions("banking")` returns 5 `KPIDefinition`s with `dimensions=["region", "transaction_type"]`. KPI names: `total_transaction_volume`, `average_transaction_value`, `transaction_count`, `average_account_balance`, `loan_good_standing_rate`. Task 7 (`kpi_computation.py`) must return exactly these 5 names from `_compute_banking_kpis`.
 
-- [ ] **Step 1: Add the banking KPI definitions test**
+- [x] **Step 1: Add the banking KPI definitions test**
 
 Add to `agents/kpi_semantic_agent/tests/test_kpi_definitions.py`:
 
@@ -860,12 +863,12 @@ def test_get_kpi_definitions_returns_five_banking_kpis():
     assert all(d.dimensions == ["region", "transaction_type"] for d in definitions)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest agents/kpi_semantic_agent/tests/test_kpi_definitions.py::test_get_kpi_definitions_returns_five_banking_kpis -v`
 Expected: FAIL — `KeyError: 'banking'`
 
-- [ ] **Step 3: Add the banking KPI definitions**
+- [x] **Step 3: Add the banking KPI definitions**
 
 In `agents/kpi_semantic_agent/kpi_definitions.py`, add after `_ECOMMERCE_KPIS`:
 
@@ -915,12 +918,12 @@ _KPIS_BY_DOMAIN = {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest agents/kpi_semantic_agent/tests/test_kpi_definitions.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/kpi_semantic_agent/kpi_definitions.py agents/kpi_semantic_agent/tests/test_kpi_definitions.py
@@ -939,7 +942,7 @@ git commit -m "kpi_definitions.py: add 5 banking KPI definitions"
 - Consumes: banking analytical columns from Task 4 (`trans_id`, `type`, `amount`, `balance`, `loan_status`).
 - Produces: `compute_kpis(df: pd.DataFrame, business_domain: str) -> dict[str, Any]` and `compute_kpi_breakdowns(df: pd.DataFrame, dimension_column: str, business_domain: str) -> dict[str, dict[str, Any]]` (both signatures changed — `business_domain` added). `_compute_banking_kpis` returns exactly the 5 keys defined in Task 6.
 
-- [ ] **Step 1: Update existing KPI computation tests, add banking tests**
+- [x] **Step 1: Update existing KPI computation tests, add banking tests**
 
 In `agents/kpi_semantic_agent/tests/test_kpi_computation.py`, add `"e-commerce"` as the second argument to every `compute_kpis(df)` call (5 occurrences) and every `compute_kpi_breakdowns(df, "customer_state")` call (2 occurrences, becoming `compute_kpi_breakdowns(df, "customer_state", "e-commerce")`).
 
@@ -998,12 +1001,12 @@ def test_compute_kpi_breakdowns_banking_groups_by_region():
     assert breakdowns["Prague"]["total_transaction_volume"] == 500.0
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest agents/kpi_semantic_agent/tests/test_kpi_computation.py -v`
 Expected: FAIL — `compute_kpis() missing 1 required positional argument: 'business_domain'`
 
-- [ ] **Step 3: Implement per-domain KPI computation**
+- [x] **Step 3: Implement per-domain KPI computation**
 
 Replace the full contents of `agents/kpi_semantic_agent/kpi_computation.py`:
 
@@ -1097,12 +1100,12 @@ def _compute_banking_kpis(df: pd.DataFrame) -> dict[str, Any]:
     }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest agents/kpi_semantic_agent/tests/test_kpi_computation.py -v`
 Expected: PASS (7 existing + 7 new tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/kpi_semantic_agent/kpi_computation.py agents/kpi_semantic_agent/tests/test_kpi_computation.py
@@ -1123,7 +1126,7 @@ git commit -m "kpi_computation.py: per-domain KPI math, add banking KPI computat
 
 Note: banking's KPI math (Task 7) does no date comparisons, so banking needs no `parse_dates` columns at all.
 
-- [ ] **Step 1: Fix the stale "banking raises KeyError" test, add a real banking integration test**
+- [x] **Step 1: Fix the stale "banking raises KeyError" test, add a real banking integration test**
 
 `test_kpi_semantic_agent.py` currently has a test proving `business_domain` is read from `CleanedDataset` (not defaulted) by asserting `business_domain="banking"` raises `KeyError` — that assumption breaks once banking KPIs exist. In `agents/kpi_semantic_agent/tests/test_kpi_semantic_agent.py`, replace:
 
@@ -1199,12 +1202,12 @@ def test_agent_run_computes_banking_kpi_catalog_from_cleaned_dataset(tmp_path):
     assert len(result.breakdowns["transaction_type"]) > 0
 ```
 
-- [ ] **Step 2: Run tests to verify the new one fails**
+- [x] **Step 2: Run tests to verify the new one fails**
 
 Run: `pytest agents/kpi_semantic_agent/tests/test_kpi_semantic_agent.py::test_agent_run_computes_banking_kpi_catalog_from_cleaned_dataset -v`
 Expected: FAIL — `KeyError: 'banking'` inside `kpi_semantic_agent/agent.py` (not yet updated)
 
-- [ ] **Step 3: Wire per-domain date/dimension columns through the agent**
+- [x] **Step 3: Wire per-domain date/dimension columns through the agent**
 
 Replace the full contents of `agents/kpi_semantic_agent/agent.py`:
 
@@ -1267,12 +1270,12 @@ class KPISemanticAgent:
         )
 ```
 
-- [ ] **Step 4: Run all kpi_semantic_agent tests to verify they pass**
+- [x] **Step 4: Run all kpi_semantic_agent tests to verify they pass**
 
 Run: `pytest agents/kpi_semantic_agent/ -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/kpi_semantic_agent/agent.py agents/kpi_semantic_agent/tests/test_kpi_semantic_agent.py
@@ -1290,7 +1293,7 @@ git commit -m "kpi_semantic_agent: per-domain date/dimension columns, add bankin
 **Interfaces:**
 - No signature change — `detect_trends(kpis: KPICatalog) -> dict[str, Any]` evaluates whatever KPI names are present in `kpis.computed_values` against a single flat `THRESHOLDS` dict. Since e-commerce and banking KPI names never collide, banking thresholds are additive entries in the same dict.
 
-- [ ] **Step 1: Add banking threshold tests**
+- [x] **Step 1: Add banking threshold tests**
 
 Add to `agents/bi_analyst_agent/tests/test_trend_detection.py`:
 
@@ -1315,12 +1318,12 @@ def test_detect_trends_flags_average_account_balance_at_or_above_threshold_as_he
     }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest agents/bi_analyst_agent/tests/test_trend_detection.py -v`
 Expected: FAIL — `KeyError: 'loan_good_standing_rate'` (`trends` dict has no such key yet)
 
-- [ ] **Step 3: Add banking thresholds**
+- [x] **Step 3: Add banking thresholds**
 
 In `agents/bi_analyst_agent/trend_detection.py`, replace `THRESHOLDS`:
 
@@ -1335,12 +1338,12 @@ THRESHOLDS = {
 
 (`detect_trends` itself needs no changes — both new keys are read from `THRESHOLDS`/`kpis.computed_values` the same way the existing two are.)
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest agents/bi_analyst_agent/tests/test_trend_detection.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/bi_analyst_agent/trend_detection.py agents/bi_analyst_agent/tests/test_trend_detection.py
@@ -1359,7 +1362,7 @@ git commit -m "trend_detection.py: add banking KPI thresholds"
 - Consumes: banking analytical columns from Task 4 (`trans_id`, `date`, `type`, `amount`, `balance`).
 - Produces: `compute_monthly_trends(analytical_df: pd.DataFrame, business_domain: str) -> dict[str, Any]` (signature changed — `business_domain` added). Banking metric keys: `total_transaction_volume`, `transaction_count`, `average_account_balance` (matching Task 6/7's KPI names, so `insight_generator.py`'s `MONTHLY_TREND_LABELS` in Task 11 can key off them the same way).
 
-- [ ] **Step 1: Update existing monthly trend tests, add banking tests**
+- [x] **Step 1: Update existing monthly trend tests, add banking tests**
 
 In `agents/bi_analyst_agent/tests/test_monthly_trends.py`, add `"e-commerce"` as the second argument to every `compute_monthly_trends(df)` call (6 occurrences).
 
@@ -1435,12 +1438,12 @@ def test_compute_monthly_trends_banking_omits_metrics_with_fewer_than_two_months
     assert trends == {}
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest agents/bi_analyst_agent/tests/test_monthly_trends.py -v`
 Expected: FAIL — `compute_monthly_trends() missing 1 required positional argument: 'business_domain'`
 
-- [ ] **Step 3: Implement per-domain monthly trends**
+- [x] **Step 3: Implement per-domain monthly trends**
 
 Replace the full contents of `agents/bi_analyst_agent/monthly_trends.py`:
 
@@ -1572,12 +1575,12 @@ def _compute_banking_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, An
     return trends
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest agents/bi_analyst_agent/tests/test_monthly_trends.py -v`
 Expected: PASS (6 existing + 4 new tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/bi_analyst_agent/monthly_trends.py agents/bi_analyst_agent/tests/test_monthly_trends.py
@@ -1595,7 +1598,7 @@ git commit -m "monthly_trends.py: per-domain monthly trends, add banking impleme
 **Interfaces:**
 - No signature change — `generate_insights` and `generate_monthly_trend_insights` already fall back to a generic `f"{kpi_name}: {status}"` label when a KPI name isn't in `TITLES`/`MONTHLY_TREND_LABELS`, so banking entries are purely additive.
 
-- [ ] **Step 1: Add banking label tests**
+- [x] **Step 1: Add banking label tests**
 
 Add to `agents/bi_analyst_agent/tests/test_insight_generator.py`:
 
@@ -1627,12 +1630,12 @@ def test_generate_monthly_trend_insights_uses_named_label_for_transaction_volume
     assert insights[0].title == "Transaction volume increasing month-over-month"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest agents/bi_analyst_agent/tests/test_insight_generator.py agents/bi_analyst_agent/tests/test_insight_generator_monthly.py -v`
 Expected: FAIL — titles fall back to the generic `"loan_good_standing_rate: concerning"` / `"total_transaction_volume increasing month-over-month"` form instead of the named ones asserted above.
 
-- [ ] **Step 3: Add banking entries to the label dicts**
+- [x] **Step 3: Add banking entries to the label dicts**
 
 In `agents/bi_analyst_agent/insight_generator.py`, update `TITLES`:
 
@@ -1662,12 +1665,12 @@ MONTHLY_TREND_LABELS = {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest agents/bi_analyst_agent/tests/test_insight_generator.py agents/bi_analyst_agent/tests/test_insight_generator_monthly.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/bi_analyst_agent/insight_generator.py agents/bi_analyst_agent/tests/test_insight_generator.py agents/bi_analyst_agent/tests/test_insight_generator_monthly.py
@@ -1686,7 +1689,7 @@ git commit -m "insight_generator.py: add banking insight titles and trend labels
 - Consumes: `compute_monthly_trends(analytical_df, business_domain)` (Task 10).
 - Produces: `BIAnalystAgent.run(cleaned: CleanedDataset, kpis: KPICatalog) -> AnalysisResult` — signature unchanged.
 
-- [ ] **Step 1: Add a banking integration test**
+- [x] **Step 1: Add a banking integration test**
 
 Add to `agents/bi_analyst_agent/tests/test_bi_analyst_agent.py`:
 
@@ -1715,12 +1718,12 @@ def test_agent_run_produces_analysis_result_from_real_banking_kpi_catalog(tmp_pa
     assert "monthly" in result.trends
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest agents/bi_analyst_agent/tests/test_bi_analyst_agent.py::test_agent_run_produces_analysis_result_from_real_banking_kpi_catalog -v`
 Expected: FAIL — `compute_monthly_trends() missing 1 required positional argument: 'business_domain'`
 
-- [ ] **Step 3: Pass `business_domain` through**
+- [x] **Step 3: Pass `business_domain` through**
 
 In `agents/bi_analyst_agent/agent.py`, change the `run` method's `compute_monthly_trends` call:
 
@@ -1729,12 +1732,12 @@ In `agents/bi_analyst_agent/agent.py`, change the `run` method's `compute_monthl
         monthly_trends = compute_monthly_trends(analytical_df, cleaned.business_domain)
 ```
 
-- [ ] **Step 4: Run all bi_analyst_agent tests to verify they pass**
+- [x] **Step 4: Run all bi_analyst_agent tests to verify they pass**
 
 Run: `pytest agents/bi_analyst_agent/ -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agents/bi_analyst_agent/agent.py agents/bi_analyst_agent/tests/test_bi_analyst_agent.py
@@ -1752,7 +1755,7 @@ git commit -m "bi_analyst_agent: pass business_domain to monthly trend computati
 **Interfaces:**
 - Consumes: every module changed in Tasks 2-12, wired together via `BIFlowOrchestrator.run_pipeline` (unchanged — already domain-agnostic).
 
-- [ ] **Step 1: Add the end-to-end banking test**
+- [x] **Step 1: Add the end-to-end banking test**
 
 Add to `tests/test_end_to_end.py`:
 
@@ -1776,22 +1779,22 @@ def test_full_pipeline_runs_end_to_end_on_banking_sample_data(tmp_path):
     assert "total_transaction_volume" in result.explanations
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_end_to_end.py::test_full_pipeline_runs_end_to_end_on_banking_sample_data -v`
 Expected: FAIL only if any earlier task's change was missed — if Tasks 1-12 are complete, this should already pass on the first run (nothing left to implement in this task; it's a full-pipeline confirmation, not a new code path).
 
-- [ ] **Step 3: If it fails, diagnose against the specific task that owns the broken module; if it passes, proceed**
+- [x] **Step 3: If it fails, diagnose against the specific task that owns the broken module; if it passes, proceed**
 
 Run: `pytest tests/test_end_to_end.py -v`
 Expected: PASS (both e-commerce and banking end-to-end tests)
 
-- [ ] **Step 4: Run the full test suite**
+- [x] **Step 4: Run the full test suite**
 
 Run: `pytest -v -k "not postgres and not load_to_postgres"`
 Expected: PASS across every agent, orchestrator, and shared schema test.
 
-- [ ] **Step 5: Update documentation**
+- [x] **Step 5: Update documentation**
 
 In `README.md`, update the `## Other useful commands` section to add a banking example:
 
@@ -1802,7 +1805,7 @@ In `README.md`, update the `## Other useful commands` section to add a banking e
 
 In `agents/kpi_semantic_agent/README.md`, `agents/data_engineering_agent/README.md`, and `agents/bi_analyst_agent/README.md`, add a short note (in whatever "status"/"next steps" section each already has) that the agent now supports both `"e-commerce"` and `"banking"` business domains, linking to [docs/superpowers/specs/2026-09-16-multi-domain-banking-design.md](../../docs/superpowers/specs/2026-09-16-multi-domain-banking-design.md) for the design rationale.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add tests/test_end_to_end.py README.md agents/kpi_semantic_agent/README.md agents/data_engineering_agent/README.md agents/bi_analyst_agent/README.md

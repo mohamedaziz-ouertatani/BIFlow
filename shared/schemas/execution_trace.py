@@ -17,7 +17,8 @@ class TraceEvent(BaseModel):
     stage: str  # e.g. "data_engineering", "kpi_semantic", "bi_analyst"
     status: str  # e.g. "started", "succeeded", "failed", "skipped"
     details: dict[str, Any] = {}
-    # TODO: confirm with orchestrator owner — should this include a duration_ms field?
+    # No duration field: a stage's duration is the gap between its "started" and
+    # "succeeded"/"failed" timestamps, so storing it too would just duplicate them.
 
 
 class ExecutionTrace(BaseModel):
