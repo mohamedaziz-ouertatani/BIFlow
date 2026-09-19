@@ -34,6 +34,7 @@ TABLE_FILENAMES_BY_DOMAIN = {
     },
 }
 
+# Berka's files are semicolon-separated; Olist and Telco use commas.
 CSV_SEP_BY_DOMAIN = {
     "e-commerce": ",",
     "banking": ";",
@@ -69,6 +70,7 @@ def profile_table(name: str, df: pd.DataFrame) -> dict[str, Any]:
     n_rows = len(df)
     n_columns = len(df.columns)
     column_types = {col: str(dtype) for col, dtype in df.dtypes.items()}
+    # Fraction (0-1) of missing cells per column; guarded so an empty table doesn't divide by zero.
     missing_values = (
         {col: ratio for col, ratio in (df.isna().sum() / n_rows).items()} if n_rows else {}
     )
@@ -78,6 +80,7 @@ def profile_table(name: str, df: pd.DataFrame) -> dict[str, Any]:
     if duplicate_rows:
         anomalies.append(f"{duplicate_rows} duplicate rows")
     for col, ratio in missing_values.items():
+        # A column is reported as an anomaly once more than half of its values are missing.
         if ratio > 0.5:
             anomalies.append(f"column '{col}' has {ratio * 100:.1f}% missing values")
 
@@ -108,6 +111,8 @@ def profile_dataset(raw_dataset: RawDatasetRef) -> ProfilingReport:
         n_rows += report["n_rows"]
         n_columns += report["n_columns"]
         duplicate_rows += report["duplicate_rows"]
+        # Keys are prefixed with the table name so same-named columns from different tables
+        # (e.g. 'order_id') don't overwrite each other in the merged report.
         for col, dtype in report["column_types"].items():
             column_types[f"{table_name}.{col}"] = dtype
         for col, ratio in report["missing_values"].items():

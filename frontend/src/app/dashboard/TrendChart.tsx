@@ -37,6 +37,8 @@ export default function TrendChart({
 }) {
   const label = METRIC_LABELS[metric] ?? metric;
 
+  // ResponsiveContainer stretches the chart to its parent's width (the height is fixed). Axis ticks
+  // use the compact format (R$4k) to save space; the tooltip shows the exact formatted value.
   return (
     <div className={styles.chartCard}>
       <div className={styles.chartLabel}>{label}</div>

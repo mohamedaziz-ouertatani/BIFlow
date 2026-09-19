@@ -42,6 +42,7 @@ export default function QueryBox({ domain }: { domain?: string | null }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const question = input.trim();
+    // Ignore empty input, and a second submit while a request is still in flight.
     if (!question || status.state === "loading") return;
 
     setStatus({ state: "loading" });

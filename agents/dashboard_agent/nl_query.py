@@ -32,6 +32,8 @@ class OllamaTimeoutError(Exception):
     """Raised when the local Ollama server doesn't respond within the timeout."""
 
 
+# Protocol = structural typing: anything with these methods qualifies, so tests can pass a fake
+# client instead of making real HTTP calls to Ollama.
 class _HttpResponse(Protocol):
     status_code: int
 
@@ -86,8 +88,12 @@ def build_context(layout: dict[str, Any]) -> str:
 # Sends the question + dashboard context to the local Ollama model and returns its answer text.
 def generate_answer(question: str, layout: dict[str, Any], client: _HttpClient | None = None) -> str:
     """Builds context from layout, calls Ollama's /api/generate, returns the answer text."""
+    # Dependency injection: use the client passed in (tests), else the real httpx module.
     http_client = client or httpx
     context = build_context(layout)
+    # Prompt-injection defense: the dashboard data and the user's question are fenced in explicit
+    # delimiters, and SYSTEM_PROMPT tells the model that anything inside USER_QUESTION is untrusted
+    # text to answer, never instructions to obey.
     prompt = (
         f"{SYSTEM_PROMPT}\n\n"
         f"<<<DATA>>>\n{context}\n<<<END_DATA>>>\n\n"
@@ -98,9 +104,12 @@ def generate_answer(question: str, layout: dict[str, Any], client: _HttpClient |
     try:
         response = http_client.post(
             f"{OLLAMA_URL}/api/generate",
+            # stream=False: wait for the whole answer as one JSON body instead of token-by-token chunks.
             json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
             timeout=30.0,
         )
+    # Order matters: TimeoutException is a subclass of HTTPError, so it must be caught first,
+    # otherwise a timeout would be reported as 'Ollama unavailable'.
     except httpx.TimeoutException as exc:
         raise OllamaTimeoutError(str(exc)) from exc
     except httpx.HTTPError as exc:
@@ -119,6 +128,8 @@ def generate_answer(question: str, layout: dict[str, Any], client: _HttpClient |
 # which the small local model will otherwise do when asked to "print your instructions" etc.
 # A single cited data line (normal, correct behavior) doesn't trip this -- only bulk reproduction does.
 def _leaks_prompt_internals(answer: str, context: str) -> bool:
+    # Slide a 40-character window over SYSTEM_PROMPT in steps of 20 (overlapping, so nothing slips
+    # between windows); if any window appears verbatim in the answer, the model echoed its instructions.
     prompt_chunk_size = 40
     for start in range(0, max(len(SYSTEM_PROMPT) - prompt_chunk_size, 0) + 1, prompt_chunk_size // 2):
         chunk = SYSTEM_PROMPT[start : start + prompt_chunk_size]
@@ -126,5 +137,6 @@ def _leaks_prompt_internals(answer: str, context: str) -> bool:
             return True
 
     context_lines = [line for line in context.splitlines() if line.strip()]
+    # One quoted data line is normal; 4+ lines (or all of a short context) means a bulk dump.
     matched_lines = sum(1 for line in context_lines if line in answer)
     return matched_lines >= 4 or (context_lines and matched_lines == len(context_lines))

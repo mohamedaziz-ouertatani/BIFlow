@@ -107,6 +107,8 @@ def generate_monthly_trend_insights(
             f"to {latest_value} in {trend['latest_month']} "
             f"({trend['pct_change']:+.1f}%)."
         )
+        # A statistical anomaly overrides the direction-based severity: it's 'critical' whether the
+        # metric jumped or collapsed.
         is_anomaly = trend.get("is_anomaly", False)
         if is_anomaly:
             description += (
@@ -122,6 +124,7 @@ def generate_monthly_trend_insights(
                 description=description,
                 related_kpi=metric_name,
                 severity=severity,
+                # The dashboard's drill-down uses this to show only the rows from that month.
                 month=trend["latest_month"],
             )
         )

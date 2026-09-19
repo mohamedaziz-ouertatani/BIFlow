@@ -74,6 +74,7 @@ async function fetchDashboard(domain: string | null): Promise<FetchState> {
     const url = domain
       ? `${API_URL}/api/dashboard?domain=${encodeURIComponent(domain)}`
       : `${API_URL}/api/dashboard`;
+    // no-store: never serve a cached copy, the dashboard must show the latest pipeline run.
     const response = await fetch(url, { cache: "no-store" });
     if (response.status === 404) {
       return { status: "no-data" };
@@ -97,7 +98,7 @@ function formatValue(name: string, value: number | string | null): string {
   return value === null ? "—" : value;
 }
 
-// Top-level dashboard page: polls the API and renders KPIs, trends, breakdowns, and insights as tabs.
+// Top-level dashboard page: polls the API and renders findings, the KPI wall, trends and breakdowns.
 function DashboardContent() {
   const searchParams = useSearchParams();
   const domain = searchParams.get("domain");
@@ -108,6 +109,8 @@ function DashboardContent() {
   const [askOpen, setAskOpen] = useState(true);
 
   useEffect(() => {
+    // `cancelled` guards against a slow response arriving after the domain changed or the page
+    // unmounted, which would overwrite newer state with stale data.
     let cancelled = false;
 
     const poll = async () => {
@@ -153,7 +156,10 @@ function DashboardContent() {
   const wall = useMemo(() => {
     const cards = data?.kpi_cards ?? [];
     return cards
+      // `index` is the card's original position, so its KPI·NN code stays fixed after re-sorting.
       .map((card, index) => ({ card, index, ...attentionFor(card.name, insights) }))
+      // Highest attention first; `||` falls through to the original index when the levels tie,
+      // so equal tiles keep a stable order.
       .sort((a, b) => ATTENTION_RANK[b.level] - ATTENTION_RANK[a.level] || a.index - b.index);
   }, [data, insights]);
 
@@ -169,6 +175,8 @@ function DashboardContent() {
 
   const openKpi = (name: string) => {
     setSelectedKpiName(name);
+    // Wait one frame so the detail panel exists in the DOM before scrolling to it. `?.scrollIntoView?.`
+    // because jsdom (the Jest test DOM) doesn't implement scrollIntoView.
     requestAnimationFrame(() =>
       document.getElementById("audit-bay")?.scrollIntoView?.({ block: "nearest", behavior: "smooth" })
     );

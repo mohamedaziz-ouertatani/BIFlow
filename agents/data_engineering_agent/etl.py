@@ -6,6 +6,8 @@ import os
 import pandas as pd
 import sqlalchemy
 
+# Berka's transaction `type` codes are Czech: PRIJEM = income (credit), VYDAJ = expense (debit).
+# They're mapped to English so the analytical table gets a readable `type_label` column.
 TYPE_LABELS = {"PRIJEM": "credit", "VYDAJ": "debit"}
 
 JOIN_DESCRIPTIONS = {
@@ -61,9 +63,14 @@ def _build_ecommerce_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     aggregated to order level before joining since an order can have
     multiple payment installments or (rarely) multiple reviews.
     """
+    # Every merge below is a LEFT join starting from order_items: an item (and its revenue)
+    # is never dropped just because a customer/product/seller lookup row is missing.
     result = tables["order_items"].merge(tables["orders"], on="order_id", how="left")
     result = result.merge(tables["customers"], on="customer_id", how="left")
 
+    # Payments are summed per order BEFORE joining: an order can be paid in several installments,
+    # and joining them raw would duplicate each item row. The order-level total then repeats on
+    # every item row of that order, so total_payment_value must not be summed across rows.
     payments_per_order = (
         tables["order_payments"]
         .groupby("order_id")["payment_value"]
@@ -74,6 +81,8 @@ def _build_ecommerce_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
     reviews = tables["order_reviews"]
     if not reviews.empty:
+        # Sort oldest -> newest and keep the last row per order = its most recent review. One review
+        # per order means this merge can't multiply the item rows.
         latest_reviews = (
             reviews.sort_values("review_creation_date")
             .groupby("order_id")
@@ -107,9 +116,14 @@ def _build_banking_table(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
         how="left",
     )
 
+    # Berka's district table has opaque headers: A1 = district id, A3 = region name
+    # (region is the dimension the banking KPIs are broken down by).
     district = tables["district"].rename(columns={"A1": "district_id", "A3": "region"})
     result = result.merge(district[["district_id", "region"]], on="district_id", how="left")
 
+    # An account has at most one loan in Berka, so this join adds a loan_status column without
+    # duplicating transaction rows; accounts with no loan get NaN.
+    # Status codes: A = finished OK, B = finished unpaid, C = running OK, D = running in debt.
     loan_status = tables["loan"][["account_id", "status"]].rename(
         columns={"status": "loan_status"}
     )
@@ -147,6 +161,8 @@ def run_etl(
     """
     analytical_table = build_analytical_table(cleaned_tables, business_domain)
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    # The CSV is how the next agents get the data (CleanedDataset only carries its path).
+    # index=False avoids writing pandas' row numbers as an extra unnamed column.
     analytical_table.to_csv(output_path, index=False)
     transformations = [
         f"{JOIN_DESCRIPTIONS[business_domain]} into one analytical table "

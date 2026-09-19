@@ -6,6 +6,8 @@ import type { DrillDownResponse } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// A state machine as a union type: collapsed -> loading -> ready | error. Each state carries only
+// the data that makes sense for it (e.g. rows exist only in 'ready').
 type DrillDownState =
   | { status: "collapsed" }
   | { status: "loading" }
@@ -23,6 +25,7 @@ async function fetchDrillDown(
     if (month) params.set("month", month);
     const response = await fetch(`${API_URL}/api/drilldown?${params}`, { cache: "no-store" });
     if (!response.ok) {
+      // An error response may not have a JSON body; `.catch(() => null)` avoids throwing while parsing it.
       const body = (await response.json().catch(() => null)) as { detail?: string } | null;
       return { status: "error", message: body?.detail ?? `API returned ${response.status}` };
     }
@@ -47,6 +50,7 @@ export default function DrillDownPanel({
 }) {
   const [state, setState] = useState<DrillDownState>({ status: "collapsed" });
 
+  // Lazy loading: rows are fetched only when the panel is first expanded; collapsing discards them.
   const handleToggle = () => {
     if (state.status === "collapsed") {
       setState({ status: "loading" });
@@ -56,6 +60,7 @@ export default function DrillDownPanel({
     }
   };
 
+  // The API returns at most 50 rows, so the summary says when only the first ones are shown.
   return (
     <div className={styles.drillDown}>
       <button type="button" className={styles.drillToggle} onClick={handleToggle}>

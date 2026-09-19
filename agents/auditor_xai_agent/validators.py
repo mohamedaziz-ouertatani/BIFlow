@@ -10,6 +10,8 @@ def validate_pipeline_outputs(
     cleaned: CleanedDataset, kpis: KPICatalog, analysis: AnalysisResult
 ) -> str:
     """Validates outputs across the pipeline and returns a validation_status."""
+    # Three-level verdict: 'failed' (no data at all) > 'passed_with_warnings' (data-quality
+    # anomalies, or any warning/critical insight) > 'passed'.
     if cleaned.data_quality_report.n_rows == 0:
         return "failed"
 

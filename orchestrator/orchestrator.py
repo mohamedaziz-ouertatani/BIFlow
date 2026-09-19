@@ -82,11 +82,14 @@ class BIFlowOrchestrator:
         cleaned = self._run_stage("data_engineering", self._run_data_engineering, raw_dataset)
         kpis = self._run_stage("kpi_semantic", self._run_kpi_semantic, cleaned)
         analysis = self._run_stage("bi_analyst", self._run_bi_analyst, cleaned, kpis)
+        # Created here (not in a helper) because the same instance is reused after the audit below.
         dashboard_agent = DashboardAgent(layout_path=self.dashboard_layout_path)
         dashboard = self._run_stage("dashboard", dashboard_agent.run, analysis, kpis)
         audit = self._run_stage(
             "auditor", self._run_auditor, cleaned, kpis, analysis, dashboard
         )
+        # The Auditor needs the DashboardSpec, so the dashboard is built before the audit exists. Its
+        # explanations are added to the already-written layout afterwards in a second pass.
         dashboard_agent.attach_audit_report(audit)
         return audit
 

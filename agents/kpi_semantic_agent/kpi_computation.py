@@ -20,6 +20,7 @@ def compute_kpi_breakdowns(
     when reading a category breakdown.
     """
     return {
+        # str(): these become JSON object keys, which must be strings.
         str(value): compute_kpis(group, business_domain)
         for value, group in df.dropna(subset=[dimension_column]).groupby(dimension_column)
     }
@@ -40,6 +41,8 @@ def compute_kpis(df: pd.DataFrame, business_domain: str) -> dict[str, Any]:
 # Computes the e-commerce KPI values from the order-item-level analytical table.
 def _compute_ecommerce_kpis(df: pd.DataFrame) -> dict[str, Any]:
     """Computes the e-commerce KPI values from the order-item-level analytical table."""
+    # The table is at ORDER-ITEM grain (one row per item): revenue is the sum of item prices, but
+    # counting orders needs nunique on order_id, since an order with 3 items spans 3 rows.
     non_canceled = filter_rows(df, "e-commerce", "total_revenue")
     total_revenue = float(non_canceled["price"].sum())
     order_count = int(df["order_id"].nunique())
@@ -48,9 +51,13 @@ def _compute_ecommerce_kpis(df: pd.DataFrame) -> dict[str, Any]:
         total_revenue / non_canceled_order_count if non_canceled_order_count else 0.0
     )
 
+    # Mean over item rows, so an order with several items counts once per item. (The monthly trend
+    # in monthly_trends.py collapses to one row per order first, so the two can differ slightly.)
     reviewed = filter_rows(df, "e-commerce", "average_review_score")
     average_review_score = float(reviewed["review_score"].mean())
 
+    # `delivered <= estimated` gives a True/False Series; the mean of booleans is the share of True,
+    # i.e. the on-time rate as a 0-1 fraction. None when nothing has been delivered (no NaN).
     delivered = filter_rows(df, "e-commerce", "on_time_delivery_rate")
     on_time_delivery_rate = (
         float(
@@ -75,6 +82,7 @@ def _compute_ecommerce_kpis(df: pd.DataFrame) -> dict[str, Any]:
 # Computes the banking KPI values from the transaction-level analytical table.
 def _compute_banking_kpis(df: pd.DataFrame) -> dict[str, Any]:
     """Computes the banking KPI values from the transaction-level analytical table."""
+    # Volume and average transaction value only count credits (PRIJEM = money coming in).
     credits = filter_rows(df, "banking", "total_transaction_volume")
     total_transaction_volume = float(credits["amount"].sum())
     transaction_count = int(df["trans_id"].nunique())
@@ -83,9 +91,14 @@ def _compute_banking_kpis(df: pd.DataFrame) -> dict[str, Any]:
         total_transaction_volume / credit_transaction_count if credit_transaction_count else 0.0
     )
 
+    # `balance` is the account's running balance after each transaction, so this is an average
+    # over transactions, not over accounts.
     balance_rows = filter_rows(df, "banking", "average_account_balance")
     average_account_balance = float(balance_rows["balance"].mean())
 
+    # loan_status was joined onto every transaction row, so this rate is taken over the
+    # transaction rows of accounts that have a loan (accounts with more transactions weigh more),
+    # not over distinct loans. A and C = good standing (finished OK / running OK).
     with_loan = filter_rows(df, "banking", "loan_good_standing_rate")
     loan_good_standing_rate = (
         float(with_loan["loan_status"].isin(["A", "C"]).mean()) if len(with_loan) else None
@@ -104,6 +117,7 @@ def _compute_banking_kpis(df: pd.DataFrame) -> dict[str, Any]:
 def _compute_telco_kpis(df: pd.DataFrame) -> dict[str, Any]:
     """Computes the telco KPI values from the customer-level analytical table."""
     total_customers = int(len(df))
+    # `churn` holds the strings Yes/No: comparing to 'Yes' gives booleans, whose mean is the churn share.
     churn_rate = (
         float((df["churn"] == "Yes").mean()) if total_customers else None
     )

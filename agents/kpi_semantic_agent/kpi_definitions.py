@@ -2,10 +2,12 @@
 
 from shared.schemas.data_contracts import KPIDefinition
 
-# Dimensions every e-commerce KPI can be broken down by (see kpi_computation.py
-# DIMENSION_COLUMNS for the analytical-table column each maps to).
+# Dimensions every e-commerce KPI can be broken down by (see agent.py
+# DIMENSION_COLUMNS_BY_DOMAIN for the analytical-table column each maps to).
 _BREAKDOWN_DIMENSIONS = ["category", "state"]
 
+# `formula` is display text only: it's shown in the dashboard and the Auditor's explanations but
+# never executed. The real math is in kpi_computation.py, the row selection in row_filters.py.
 _ECOMMERCE_KPIS = [
     KPIDefinition(
         name="total_revenue",
