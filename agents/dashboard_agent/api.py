@@ -34,11 +34,22 @@ DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000"]
 # allowlist rather than passed through as free text.
 ALLOWED_DOMAINS = {"e-commerce", "banking", "telco"}
 
-# Where each domain's full raw dataset lives, for live-triggered runs.
-DOMAIN_DATASETS: dict[str, tuple[str, str]] = {
-    "e-commerce": ("data/raw/olist", "olist"),
-    "banking": ("data/raw/berka", "banking"),
-    "telco": ("data/raw/telco", "telco"),
+# Where each domain's dataset lives, for live-triggered runs. BIFLOW_DATASET_SET
+# picks the set: "raw" (the full, gitignored datasets, the default) or "sample"
+# (the small committed samples, used by the Playwright end-to-end tests).
+# Directory names differ between the sets (berka vs banking), so these are two
+# full mappings rather than one root.
+DATASET_SETS: dict[str, dict[str, tuple[str, str]]] = {
+    "raw": {
+        "e-commerce": ("data/raw/olist", "olist"),
+        "banking": ("data/raw/berka", "banking"),
+        "telco": ("data/raw/telco", "telco"),
+    },
+    "sample": {
+        "e-commerce": ("data/sample/olist", "olist"),
+        "banking": ("data/sample/banking", "banking"),
+        "telco": ("data/sample/telco", "telco"),
+    },
 }
 
 _STATUS_TO_EVENT_TYPE = {
@@ -58,6 +69,12 @@ def create_app(
         "DASHBOARD_LAYOUT_PATH", DEFAULT_LAYOUT_PATH
     )
     resolved_analytical_path = os.environ.get("ANALYTICAL_TABLE_PATH", DEFAULT_OUTPUT_PATH)
+    dataset_set = os.environ.get("BIFLOW_DATASET_SET", "raw")
+    if dataset_set not in DATASET_SETS:
+        raise ValueError(
+            f"BIFLOW_DATASET_SET must be one of {sorted(DATASET_SETS)}, got {dataset_set!r}"
+        )
+    domain_datasets = DATASET_SETS[dataset_set]
     origins = allowed_origins or os.environ.get(
         "ALLOWED_ORIGINS", ",".join(DEFAULT_ALLOWED_ORIGINS)
     ).split(",")
@@ -119,7 +136,7 @@ def create_app(
     def run_pipeline(domain: str) -> StreamingResponse:
         layout_path = _layout_path_for(domain)  # validates domain against ALLOWED_DOMAINS
         analytical_path = _analytical_path_for(domain)
-        dataset_path, dataset_name = DOMAIN_DATASETS[domain]
+        dataset_path, dataset_name = domain_datasets[domain]
         events: queue.Queue[dict | None] = queue.Queue()
 
         def on_event(stage: str, status: str, details: dict) -> None:

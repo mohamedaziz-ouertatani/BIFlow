@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from agents.dashboard_agent.api import create_app
@@ -30,12 +32,14 @@ class _FakeOrchestrator:
 
     STAGES = ["data_engineering", "kpi_semantic", "bi_analyst", "dashboard", "auditor"]
     last_analytical_path = None
+    last_raw_dataset = None
 
     def __init__(self, analytical_path, dashboard_layout_path, on_event):
         _FakeOrchestrator.last_analytical_path = analytical_path
         self.on_event = on_event
 
     def run_pipeline(self, raw_dataset):
+        _FakeOrchestrator.last_raw_dataset = raw_dataset
         for stage in self.STAGES:
             self.on_event(stage, "started", {})
             self.on_event(stage, "succeeded", {})
@@ -393,3 +397,37 @@ def test_drilldown_endpoint_caps_rows_at_fifty(tmp_path, monkeypatch):
     body = response.json()
     assert body["total_rows"] == 60
     assert len(body["rows"]) == 50
+
+
+def test_run_pipeline_reads_the_raw_datasets_by_default(tmp_path, monkeypatch):
+    monkeypatch.delenv("BIFLOW_DATASET_SET", raising=False)
+    monkeypatch.setattr("agents.dashboard_agent.api.BIFlowOrchestrator", _FakeOrchestrator)
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    client.get("/api/pipeline/run", params={"domain": "banking"})
+
+    assert _FakeOrchestrator.last_raw_dataset.dataset_path == "data/raw/berka"
+
+
+def test_run_pipeline_reads_the_sample_datasets_when_configured(tmp_path, monkeypatch):
+    monkeypatch.setenv("BIFLOW_DATASET_SET", "sample")
+    monkeypatch.setattr("agents.dashboard_agent.api.BIFlowOrchestrator", _FakeOrchestrator)
+    client = TestClient(create_app(layout_path=str(tmp_path / "dashboard_layout.json")))
+
+    paths = {}
+    for domain in ("e-commerce", "banking", "telco"):
+        client.get("/api/pipeline/run", params={"domain": domain})
+        paths[domain] = _FakeOrchestrator.last_raw_dataset.dataset_path
+
+    assert paths == {
+        "e-commerce": "data/sample/olist",
+        "banking": "data/sample/banking",
+        "telco": "data/sample/telco",
+    }
+
+
+def test_create_app_rejects_an_unknown_dataset_set(monkeypatch):
+    monkeypatch.setenv("BIFLOW_DATASET_SET", "bogus")
+
+    with pytest.raises(ValueError, match="BIFLOW_DATASET_SET"):
+        create_app(layout_path="unused.json")
