@@ -478,7 +478,9 @@ actual 500-order sample, and at full scale (~99k orders) — rather than
 synthetic mocks wherever the code under test touches data, Postgres, or
 HTTP. The one deliberate exception is the frontend's `fetch` mocking,
 which is standard practice for testing UI rendering logic in isolation
-from a backend that's already covered elsewhere.
+from a backend that's already covered elsewhere. A small Playwright suite
+closes the remaining gap by driving the real UI against the real API (only
+the local LLM is stubbed).
 
 Beyond automated tests, several features were also verified by actually
 running them: loading the live dashboard in a browser and watching it
@@ -509,5 +511,9 @@ test` in `frontend/`).
   KPI must be added to both (the NL query context still sees raw fractions).
 - **NL query needs a local Ollama server** — without it `/api/query`
   returns `503`.
-- **No end-to-end (Playwright) frontend tests** — only unit-level
-  rendering tests with a mocked API.
+- **End-to-end tests cover one domain** — the Playwright suite
+  (`frontend/e2e/`, design in
+  [`docs/superpowers/specs/2026-09-19-playwright-e2e-design.md`](superpowers/specs/2026-09-19-playwright-e2e-design.md))
+  runs the golden path for `e-commerce` on the sample data
+  (`BIFLOW_DATASET_SET=sample`); banking and telco are covered by pytest and
+  Jest only.

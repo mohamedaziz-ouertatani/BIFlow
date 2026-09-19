@@ -49,6 +49,22 @@ Python-side testing philosophy: the Python backend's real behavior
 `pytest`, so these tests only need to prove the *frontend* renders
 correctly given a response shape — not re-prove the API works.
 
+### End-to-end (Playwright)
+
+```bash
+npx playwright install chromium   # once
+npm run e2e
+```
+
+Starts the API (port 8100) and a production build of the frontend (port 3100)
+itself, against the committed **sample** data (`BIFLOW_DATASET_SET=sample`), and
+drives the real landing console and dashboard. Only Ollama's answer is stubbed.
+Output goes to `.e2e-data/` at the repo root (gitignored, wiped each run).
+
+- Set `PYTHON` if `python` is not on your `PATH`.
+- Set `E2E_BROWSER_CHANNEL=chrome` to use an installed Chrome instead of
+  downloading Playwright's Chromium (useful on slow or restricted networks).
+
 ## Via docker-compose
 
 ```bash
@@ -62,5 +78,5 @@ bind-mount volume (unlike the Python services), so a code change requires
 ## TODO
 - [x] Add a trend chart once the layout includes `AnalysisResult.trends["monthly"]`
 - [x] Automated frontend tests (Jest + React Testing Library)
-- [ ] End-to-end tests (Playwright) against the real API, if deeper
-  coverage is ever needed beyond mocked-fetch unit tests
+- [x] End-to-end tests (Playwright) against the real API on sample data — see
+  `e2e/` and the Testing section above
