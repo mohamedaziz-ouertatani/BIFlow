@@ -9,3 +9,8 @@ data/processed/*
 !data/processed/.gitkeep
 .pytest_cache/
 *.egg-info/
+
+# Impeccable design-tool session state
+.impeccable/decision-payload.json
+.impeccable/mocks/
+.impeccable/questions/
