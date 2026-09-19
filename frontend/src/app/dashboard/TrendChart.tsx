@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { metricAxisDomain } from "./axes";
 import { formatMetricValue, formatMetricValueCompact } from "./currency";
 import styles from "./page.module.css";
 import type { MonthlyTrendPoint } from "./types";
@@ -48,6 +49,7 @@ export default function TrendChart({
             minTickGap={20}
           />
           <YAxis
+            domain={metricAxisDomain(metric, "line")}
             tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }}
             width={64}
             tickFormatter={(value: number) => formatMetricValueCompact(metric, value)}

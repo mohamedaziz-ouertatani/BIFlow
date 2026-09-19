@@ -1,7 +1,8 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatMetricValue } from "./currency";
+import { metricAxisDomain, truncateAxisLabel } from "./axes";
+import { formatMetricValue, formatMetricValueCompact } from "./currency";
 import styles from "./page.module.css";
 import type { CategoryBreakdownPoint } from "./types";
 
@@ -63,8 +64,10 @@ export default function CategoryChart({
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} horizontal={false} />
           <XAxis
             type="number"
+            domain={metricAxisDomain(metric, "bar")}
+            tickCount={4}
             tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }}
-            tickFormatter={(value: number) => formatMetricValue(metric, value)}
+            tickFormatter={(value: number) => formatMetricValueCompact(metric, value)}
           />
           <YAxis
             type="category"
@@ -72,6 +75,7 @@ export default function CategoryChart({
             tick={{ fontSize: 11, fontFamily: "var(--font-plex-mono)" }}
             width={110}
             tickLine={false}
+            tickFormatter={truncateAxisLabel}
           />
           <Tooltip
             contentStyle={{
