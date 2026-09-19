@@ -14,3 +14,6 @@ data/processed/*
 .impeccable/decision-payload.json
 .impeccable/mocks/
 .impeccable/questions/
+
+# Playwright end-to-end run output
+.e2e-data/
