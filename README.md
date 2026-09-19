@@ -190,8 +190,9 @@ All 5 agents and the Orchestrator are implemented and wired end-to-end
 against the Olist sample data (and verified against the full ~99k-order
 dataset too) — see "Getting started" above to run it. `BIFlowOrchestrator().run_pipeline(raw_dataset)`
 is the underlying Python entrypoint if you'd rather call it directly than
-via the CLI. CI runs both the Python suite (including real-Postgres tests)
-and the frontend suite (lint, Jest, build) on every push/PR to `main` —
+via the CLI. CI runs the Python suite (including real-Postgres tests), the
+frontend suite (lint, Jest, build) and the Playwright end-to-end suite on
+every push/PR to `main` —
 see [`.github/workflows/tests.yml`](.github/workflows/tests.yml).
 
 Postgres loading is wired in and **on by default for the CLI** (opt-out
@@ -234,9 +235,17 @@ for the host-vs-container connection details, including the port 5433 remap.
 12. ~~Add automated frontend tests~~ — done: Jest + React Testing Library
     (`frontend/src/app/*.test.tsx`), run in CI alongside lint/build.
 13. ~~Redesign the dashboard as an explainable "Audit Console"~~ — done: new
-    visual system (see [`DESIGN.md`](DESIGN.md)), restructured into a
-    WAI-ARIA tablist with keyboard navigation, and an expanded multi-section
-    PDF report matching the dashboard's design system.
+    visual system (see [`DESIGN.md`](DESIGN.md)) and an expanded
+    multi-section PDF report matching the dashboard's design system. (The
+    tabbed layout from this step was later replaced — see step 14.)
+14. ~~Replace the tabs with a single-page "telemetry wall"~~ — done: findings
+    first, then a KPI grid sorted by attention, monthly trends and category
+    breakdowns; every KPI opens a detail panel with its formula, trend and
+    the underlying rows. Breakdown charts only roll a long tail into "Other"
+    for sums and counts, never for averages or rates.
+15. ~~Add Playwright end-to-end tests~~ — done: six golden-path tests run the
+    real API and frontend on the sample data (landing to dashboard, KPI
+    drill-down, PDF download, the Ask box) and run in CI.
 
 ## License
 
