@@ -46,10 +46,17 @@ export default function LandingPage() {
   const logRef = useRef<HTMLElement | null>(null);
   const [clock, setClock] = useState<Date | null>(null);
 
+  // The clock starts empty so server and client render the same markup, then
+  // ticks from the first timer callback (setState inside a callback, not
+  // synchronously in the effect body).
   useEffect(() => {
-    setClock(new Date());
-    const id = setInterval(() => setClock(new Date()), 1000);
-    return () => clearInterval(id);
+    const tick = () => setClock(new Date());
+    const first = setTimeout(tick, 0);
+    const id = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
   }, []);
 
   useEffect(() => {
@@ -109,7 +116,7 @@ export default function LandingPage() {
             ◆
           </span>
           BIFLOW
-          <span className={styles.callsignSuffix}>// OPS CONSOLE</span>
+          <span className={styles.callsignSuffix}>{"// OPS CONSOLE"}</span>
         </div>
         <div className={styles.systemStatus}>
           <span className={`${styles.statusDot} ${styles[`statusDot-${systemState}`]}`} />
