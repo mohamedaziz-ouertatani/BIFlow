@@ -177,6 +177,7 @@ def test_build_layout_caps_category_breakdowns_at_eight_items_with_an_other_buck
                 formula="sum(price)",
                 description="Total revenue",
                 dimensions=["category"],
+                additive=True,
             )
         ],
         computed_values={"total_revenue": 55.0},
@@ -190,6 +191,32 @@ def test_build_layout_caps_category_breakdowns_at_eight_items_with_an_other_buck
     assert len(points) == 8
     assert points[-1]["label"] == "Other"
     assert points[-1]["value"] == sum(10 - i for i in range(7, 10))
+
+
+def test_build_layout_truncates_a_non_additive_kpi_to_the_top_items_without_an_other_bucket():
+    # Summing averages or rates into "Other" is meaningless (an "Other" review
+    # score of 255 on a 1-5 scale), so non-additive KPIs are cut off instead.
+    groups = {f"cat{i}": {"average_review_score": 5.0 - i * 0.1} for i in range(10)}
+    kpis = KPICatalog(
+        kpis=[
+            KPIDefinition(
+                name="average_review_score",
+                formula="mean(review_score)",
+                description="Average review score",
+                dimensions=["category"],
+            )
+        ],
+        computed_values={"average_review_score": 4.5},
+        breakdowns={"category": groups},
+    )
+    analysis = AnalysisResult(insights=[], trends={})
+
+    layout = build_layout(analysis, kpis)
+
+    points = layout["category_breakdowns"]["average_review_score_by_category"]
+    assert [p["label"] for p in points] == [f"cat{i}" for i in range(8)]
+    assert all(p["label"] != "Other" for p in points)
+    assert all(1 <= p["value"] <= 5 for p in points)
 
 
 def test_build_layout_omits_a_dimension_kpi_pair_with_no_breakdown_data():

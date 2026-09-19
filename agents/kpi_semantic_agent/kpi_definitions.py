@@ -12,6 +12,7 @@ _ECOMMERCE_KPIS = [
         formula="sum(price) where order_status != 'canceled'",
         description="Total revenue from non-canceled order items.",
         dimensions=_BREAKDOWN_DIMENSIONS,
+        additive=True,
     ),
     KPIDefinition(
         name="average_order_value",
@@ -24,6 +25,7 @@ _ECOMMERCE_KPIS = [
         formula="count(distinct order_id)",
         description="Total number of distinct orders, across all statuses.",
         dimensions=_BREAKDOWN_DIMENSIONS,
+        additive=True,
     ),
     KPIDefinition(
         name="average_review_score",
@@ -50,6 +52,7 @@ _BANKING_KPIS = [
         formula="sum(amount) where type == 'PRIJEM'",
         description="Total value of credit transactions.",
         dimensions=_REGION_BREAKDOWN,
+        additive=True,
     ),
     KPIDefinition(
         name="average_transaction_value",
@@ -62,6 +65,7 @@ _BANKING_KPIS = [
         formula="count(distinct trans_id)",
         description="Total number of transactions, both credits and debits.",
         dimensions=_REGION_BREAKDOWN,
+        additive=True,
     ),
     KPIDefinition(
         name="average_account_balance",
@@ -103,6 +107,7 @@ _TELCO_KPIS = [
         formula="count(*)",
         description="Total number of customers.",
         dimensions=_TELCO_BREAKDOWN_DIMENSIONS,
+        additive=True,
     ),
 ]
 

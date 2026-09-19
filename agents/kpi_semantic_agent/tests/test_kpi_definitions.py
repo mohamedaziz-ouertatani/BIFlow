@@ -43,3 +43,17 @@ def test_get_kpi_definitions_returns_four_telco_kpis():
         "total_customers",
     }
     assert all(d.dimensions == ["contract", "internet_service"] for d in definitions)
+
+
+def test_only_sum_and_count_kpis_are_additive():
+    # Averages and rates can't be summed across groups, so they must not be additive.
+    additive = {
+        domain: {k.name for k in get_kpi_definitions(domain) if k.additive}
+        for domain in ("e-commerce", "banking", "telco")
+    }
+
+    assert additive == {
+        "e-commerce": {"total_revenue", "order_count"},
+        "banking": {"total_transaction_volume", "transaction_count"},
+        "telco": {"total_customers"},
+    }
