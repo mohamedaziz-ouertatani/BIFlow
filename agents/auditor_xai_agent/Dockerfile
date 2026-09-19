@@ -10,5 +10,8 @@ RUN pip install --no-cache-dir -r requirements-dev.txt -r agents/auditor_xai_age
 
 COPY . .
 
-# TODO (owner): replace with the real entrypoint once agent.py is implemented.
+# Intentionally idle: agents are library modules, not servers. The pipeline runs
+# in-process inside the dashboard_agent container (GET /api/pipeline/run
+# imports the orchestrator, which imports every agent). This container just
+# stays up so you can `docker compose exec <service> pytest`.
 CMD ["sleep", "infinity"]
