@@ -18,6 +18,11 @@ const METRIC_LABELS: Record<string, string> = {
   transaction_count: "Transaction count",
   average_account_balance: "Average account balance",
   loan_good_standing_rate: "Loan good standing rate",
+  // telco
+  churn_rate: "Churn rate",
+  average_monthly_charges: "Average monthly charges",
+  average_tenure_months: "Average tenure (months)",
+  total_customers: "Customers",
 };
 
 // Splits a "{kpi_name}_by_{dimension}" breakdown key into its two parts.
@@ -42,7 +47,7 @@ export default function CategoryChart({
 }) {
   const { metric, dimension } = parseBreakdownKey(breakdownKey);
   const metricLabel = METRIC_LABELS[metric] ?? metric;
-  const label = dimension ? `${metricLabel} by ${dimension}` : metricLabel;
+  const label = dimension ? `${metricLabel} by ${dimension.replace(/_/g, " ")}` : metricLabel;
   const chartHeight = Math.min(320, Math.max(120, points.length * 32));
 
   return (

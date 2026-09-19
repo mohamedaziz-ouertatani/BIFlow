@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from shared.metrics import PERCENT_METRICS, format_percent
 from shared.schemas.data_contracts import Insight, KPICatalog
 
 TITLES = {
@@ -28,8 +29,12 @@ def generate_insights(kpis: KPICatalog, trends: dict[str, Any]) -> list[Insight]
     for kpi_name, evaluation in trends.items():
         status = evaluation["status"]
         title = TITLES.get((kpi_name, status), f"{kpi_name}: {status}")
-        value = round(evaluation["value"], 2)
-        threshold = round(evaluation["threshold"], 2)
+        if kpi_name in PERCENT_METRICS:
+            value = format_percent(evaluation["value"])
+            threshold = format_percent(evaluation["threshold"])
+        else:
+            value = round(evaluation["value"], 2)
+            threshold = round(evaluation["threshold"], 2)
         description = (
             f"{kpi_name} is {value} "
             f"({'at or above' if status == 'healthy' else 'below'} "

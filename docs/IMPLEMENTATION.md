@@ -178,8 +178,19 @@ row filters:
 | `banking` | Berka (`data/raw/berka`) | `total_transaction_volume`, `average_transaction_value`, `transaction_count`, `average_account_balance`, `loan_good_standing_rate` |
 | `telco` | Telco churn (`data/raw/telco`) | `churn_rate`, `average_monthly_charges`, `average_tenure_months`, `total_customers` |
 
-Category/state breakdowns (`KPICatalog.breakdowns`) are e-commerce only;
-banking and telco KPIs don't define breakdown dimensions yet.
+Every KPI in every domain declares breakdown dimensions
+(`KPICatalog.breakdowns`, mapped to analytical-table columns in
+`DIMENSION_COLUMNS_BY_DOMAIN`): e-commerce by `category` and `state`,
+banking by `region`, telco by `contract` and `internet_service`. One
+caveat: banking's `average_account_balance` and `loan_good_standing_rate`
+are computed over transaction-grain rows, so accounts with more
+transactions weigh more heavily, in the breakdowns as in the headline value.
+
+**Rate KPIs display as percentages.** `on_time_delivery_rate`,
+`loan_good_standing_rate` and `churn_rate` are stored as 0–1 fractions, but
+the dashboard, the PDF, the insight text and the KPI explanations all show
+them as percentages (one decimal, e.g. `26.5%`). The list lives in
+`shared/metrics.py` and, for the frontend, in `dashboard/currency.ts`.
 
 ### 5.2 Row filters (`row_filters.py`)
 
@@ -493,8 +504,9 @@ test` in `frontend/`).
 - **Halt-only error handling** — a stage failure halts the run and is
   re-raised as `PipelineStageError` naming the stage; there is no retry or
   skip, since each stage's output feeds the next.
-- **Breakdowns are e-commerce only** — banking and telco KPIs don't define
-  breakdown dimensions yet.
+- **Percent list is duplicated** — which KPIs are rates lives in both
+  `shared/metrics.py` and `frontend/src/app/dashboard/currency.ts`; a new rate
+  KPI must be added to both (the NL query context still sees raw fractions).
 - **NL query needs a local Ollama server** — without it `/api/query`
   returns `503`.
 - **No end-to-end (Playwright) frontend tests** — only unit-level

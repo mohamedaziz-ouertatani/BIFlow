@@ -29,10 +29,7 @@ def test_get_kpi_definitions_returns_five_banking_kpis():
         "average_account_balance",
         "loan_good_standing_rate",
     }
-    assert by_name["loan_good_standing_rate"].dimensions == []
-    assert all(
-        d.dimensions == ["region"] for name, d in by_name.items() if name != "loan_good_standing_rate"
-    )
+    assert all(d.dimensions == ["region"] for d in by_name.values())
 
 
 def test_get_kpi_definitions_returns_four_telco_kpis():

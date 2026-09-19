@@ -1,5 +1,6 @@
 """Explainability (XAI) logic for the Auditor/XAI Agent."""
 
+from shared.metrics import PERCENT_METRICS, format_percent
 from shared.schemas.data_contracts import AnalysisResult, KPICatalog
 
 
@@ -10,7 +11,9 @@ def generate_explanations(kpis: KPICatalog, analysis: AnalysisResult) -> dict[st
 
     for kpi in kpis.kpis:
         value = kpis.computed_values.get(kpi.name)
-        if isinstance(value, float):
+        if kpi.name in PERCENT_METRICS and isinstance(value, float):
+            value = format_percent(value)
+        elif isinstance(value, float):
             value = round(value, 2)
         explanations[kpi.name] = (
             f"{kpi.description} Computed as `{kpi.formula}` = {value}."

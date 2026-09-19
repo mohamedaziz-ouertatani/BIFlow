@@ -26,4 +26,26 @@ describe("CategoryChart", () => {
 
     expect(screen.getByText("some_new_metric by region")).toBeInTheDocument();
   });
+
+  it("labels telco metrics and dimensions readably", () => {
+    render(
+      <CategoryChart
+        breakdownKey="churn_rate_by_internet_service"
+        points={[{ label: "Fiber optic", value: 0.417 }]}
+      />
+    );
+
+    expect(screen.getByText("Churn rate by internet service")).toBeInTheDocument();
+  });
+
+  it("labels the banking loan metric by region", () => {
+    render(
+      <CategoryChart
+        breakdownKey="loan_good_standing_rate_by_region"
+        points={[{ label: "Prague", value: 0.9 }]}
+      />
+    );
+
+    expect(screen.getByText("Loan good standing rate by region")).toBeInTheDocument();
+  });
 });

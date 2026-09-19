@@ -73,7 +73,7 @@ _BANKING_KPIS = [
         name="loan_good_standing_rate",
         formula="count(loan_status in ('A','C')) / count(loan_status is not null)",
         description="Share of loans that are in good standing (finished without issue, or running normally).",
-        dimensions=[],
+        dimensions=_REGION_BREAKDOWN,
     ),
 ]
 
