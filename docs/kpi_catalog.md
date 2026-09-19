@@ -1,6 +1,6 @@
 # KPI Catalog
 
-**Owner:** Person B (BI Semantic & KPI Agent)
+**Owner:** Mohamed Aymen Hamzeoui (BI Semantic & KPI Agent)
 
 KPIs defined in `agents/kpi_semantic_agent/kpi_definitions.py`, computed by
 `agents/kpi_semantic_agent/kpi_computation.py`. This page documents the

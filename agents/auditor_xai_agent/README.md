@@ -1,6 +1,6 @@
 # BI Auditor / XAI Agent
 
-**Owner:** Person E
+**Owner:** Mohamed Aymen Hamzeoui
 
 ## Purpose
 Validates the outputs of every pipeline stage and produces explanations and
