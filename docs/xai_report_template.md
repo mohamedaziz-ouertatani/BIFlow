@@ -1,6 +1,6 @@
 # XAI Report Template
 
-**Owner:** Person E (BI Auditor/XAI Agent)
+**Owner:** Mohamed Aymen Hamzeoui (BI Auditor/XAI Agent)
 
 Used to render `shared.schemas.data_contracts.AuditReport` into a
 human-readable explainability report.

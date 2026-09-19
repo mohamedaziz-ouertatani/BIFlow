@@ -1,6 +1,6 @@
 # Data Quality Report Template
 
-**Owner:** Person A (Data Engineering Agent)
+**Owner:** Mohamed Aziz Ouertatani (Data Engineering Agent)
 
 Used to render `shared.schemas.data_contracts.ProfilingReport` into a
 human-readable report. The sections below match `ProfilingReport`'s fields

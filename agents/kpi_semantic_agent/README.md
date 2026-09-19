@@ -1,6 +1,6 @@
 # BI Semantic & KPI Agent
 
-**Owner:** Person B
+**Owner:** Mohamed Aymen Hamzeoui
 
 ## Purpose
 Defines the KPIs relevant to the business domain and computes their values
