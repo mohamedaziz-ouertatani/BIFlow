@@ -1,7 +1,7 @@
-# TODO (owner, Person E): flesh out build contexts/Dockerfiles per service
-# once each agent has real dependencies. This stub wires up the topology
-# (one service per agent + orchestrator + dashboard + db) so integration
-# issues surface early, even before real logic is written.
+# Services that do real work: db, dashboard_agent (FastAPI + in-process pipeline
+# runs) and frontend (Next.js). The orchestrator and the four pipeline agents
+# are libraries that dashboard_agent imports, so their containers idle on
+# `sleep infinity` -- they exist only for `docker compose exec <service> pytest`.
 
 services:
   db:

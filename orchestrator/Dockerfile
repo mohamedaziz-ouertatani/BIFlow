@@ -10,8 +10,8 @@ RUN pip install --no-cache-dir -r requirements-dev.txt -r orchestrator/requireme
 
 COPY . .
 
-# TODO (owner): replace with the real entrypoint once run_pipeline() is
-# implemented (e.g. `CMD ["python", "-m", "orchestrator.orchestrator"]` or an
-# API server). Idles for now so `docker-compose up` can bring the topology up
-# before there's real logic to run.
+# Intentionally idle: agents are library modules, not servers. The pipeline runs
+# in-process inside the dashboard_agent container (GET /api/pipeline/run
+# imports the orchestrator, which imports every agent). This container just
+# stays up so you can `docker compose exec <service> pytest`.
 CMD ["sleep", "infinity"]

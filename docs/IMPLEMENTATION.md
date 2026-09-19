@@ -165,6 +165,30 @@ Defines and computes 5 KPIs for the `e-commerce` domain (see
 (potentially large) analytical CSV is ever read — an unknown domain fails
 fast with a `KeyError` instead of after an unnecessary file read.
 
+### 5.1 Business domains
+
+BIFlow is multi-domain (design:
+[`docs/superpowers/specs/2026-09-16-multi-domain-banking-design.md`](superpowers/specs/2026-09-16-multi-domain-banking-design.md)).
+`RawDatasetRef.business_domain` selects the ETL join, the KPI set and the
+row filters:
+
+| Domain | Dataset | KPIs |
+|---|---|---|
+| `e-commerce` | Olist (`data/raw/olist`) | the 5 above |
+| `banking` | Berka (`data/raw/berka`) | `total_transaction_volume`, `average_transaction_value`, `transaction_count`, `average_account_balance`, `loan_good_standing_rate` |
+| `telco` | Telco churn (`data/raw/telco`) | `churn_rate`, `average_monthly_charges`, `average_tenure_months`, `total_customers` |
+
+Category/state breakdowns (`KPICatalog.breakdowns`) are e-commerce only;
+banking and telco KPIs don't define breakdown dimensions yet.
+
+### 5.2 Row filters (`row_filters.py`)
+
+`row_filters.py` is the **single definition of "which rows count for this
+KPI"**. Both `kpi_computation.py` (to compute the value) and the
+dashboard API's `/api/drilldown` endpoint (to show the rows behind it) call
+`filter_rows(df, domain, kpi, month)`, so the number on a tile and the
+table you get when you drill into it cannot silently drift apart.
+
 ---
 
 ## 6. BI Analyst Agent
@@ -217,19 +241,55 @@ use names like `average_review_score`).
 
 ## 7. Dashboard Generator Agent
 
-**Files:** `agents/dashboard_agent/{agent,layout_builder,api}.py`
+**Files:** `agents/dashboard_agent/{agent,layout_builder,api,report,nl_query}.py`
 
 1. **`layout_builder.build_layout(analysis, kpis)`** — builds one
    JSON-serializable layout: `kpi_cards` (one per KPI: name, label,
-   value), `insights` (one per `Insight`: title, description, severity),
-   and `monthly_trends` (metric name → list of `{month, value}` points,
-   pulled straight from `analysis.trends["monthly"]`).
+   value, explanation, month-over-month `comparison`), `insights` (one per
+   `Insight`: title, description, severity, `related_kpi`, `month`),
+   `monthly_trends` (metric name → list of `{month, value}` points, pulled
+   straight from `analysis.trends["monthly"]`) and, for e-commerce,
+   category/state breakdowns.
 2. **`DashboardAgent.run(analysis, kpis)`** — builds the layout, writes it
    to `data/processed/dashboard_layout.json`, and returns a
    `DashboardSpec`.
-3. **`api.py`** — a small FastAPI app (`GET /api/dashboard`,
-   `GET /api/health`) that reads that JSON file and serves it over HTTP,
-   with CORS open for the frontend's origin.
+3. **`api.py`** — a FastAPI app with CORS open for the frontend's origin.
+   Layouts and analytical tables are **domain-scoped**
+   (`dashboard_layout_<domain>.json`, `analytical_table_<domain>.csv`) so
+   runs for different domains don't overwrite each other.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/health` | liveness |
+| `GET /api/dashboard?domain=` | the layout JSON (404 until a pipeline run has produced it) |
+| `GET /api/pipeline/run?domain=` | runs the real pipeline in-process and streams progress as Server-Sent Events (`stage_started` / `stage_succeeded` / `stage_failed` / `pipeline_succeeded`) |
+| `GET /api/drilldown?domain=&kpi=&month=` | the analytical-table rows behind one KPI (optionally one month), via `row_filters.filter_rows`; returns `total_rows`, `columns` and at most 50 `rows` |
+| `GET /api/report.pdf?domain=` | downloadable PDF snapshot of the layout (`report.py`, reportlab) |
+| `POST /api/query?domain=` | natural-language Q&A over the layout (`nl_query.py`) |
+
+### 7.1 PDF report (`report.py`)
+
+`build_pdf(layout)` mirrors the dashboard's **Telemetry Wall** ordering
+rather than the raw layout order: **Findings** first (severity-sorted,
+critical first), then **KPI telemetry** sorted by attention, then trends
+and breakdowns. A KPI's attention is the highest severity among insights
+whose `related_kpi` matches it, and a KPI with none is reported as "No
+findings" — never as "healthy". The helpers (`_severity_of`,
+`_attention_for`, `_findings_text`) deliberately duplicate the frontend's
+logic so the two outputs agree.
+
+### 7.2 Natural-language query (`nl_query.py`)
+
+Design:
+[`docs/superpowers/specs/2026-09-16-nl-query-design.md`](superpowers/specs/2026-09-16-nl-query-design.md).
+`build_context(layout)` serializes the layout into a compact text block and
+`generate_answer` sends it, with the question, to a **local Ollama** server
+(`OLLAMA_URL`, default `http://localhost:11434`; `OLLAMA_MODEL`, default
+`qwen2.5:3b`). The system prompt restricts the model to the supplied data
+and treats the question as untrusted input; an answer that echoes the
+system prompt or dumps most of the data block is replaced with a canned
+refusal. `POST /api/query` returns `503` if Ollama isn't running and `504`
+if it times out (30 s) — no cloud LLM is involved.
 
 This used to be a **Streamlit** app (`app.py`, since removed) that
 re-rendered the layout server-side on every page load. It's now a pure
@@ -241,13 +301,30 @@ JSON API — the frontend owns rendering, polling, and all UI state.
 
 **Directory:** `frontend/` (App Router, TypeScript, no Tailwind)
 
-`src/app/page.tsx` is a client component that polls
-`GET {NEXT_PUBLIC_API_URL}/api/dashboard` every 5 seconds and renders:
+Two routes, both in the **Mission Control** visual world (see
+[`DESIGN.md`](../DESIGN.md)):
 
-- A grid of KPI cards
-- One `TrendChart` (Recharts line chart) per metric in `monthly_trends`
-- A severity-colored insights list
-- Loading / "no data yet" (404) / error (API unreachable) states
+- **`/` — landing / launch console** (`src/app/page.tsx`,
+  `usePipelineRun.ts`). The visitor picks a domain, arms the pipeline, and
+  watches five subsystem panels and a scrolling log report **real** SSE
+  events from `GET /api/pipeline/run`. On success it hands off to
+  `/dashboard`.
+- **`/dashboard` — Telemetry Wall** (`src/app/dashboard/`). No tabs. From
+  top to bottom: a **Findings** log (severity-sorted); the **KPI wall**,
+  sorted by attention (a tile's status light is the highest severity among
+  insights that reference it; no findings shows as "No findings", never as
+  healthy); an in-page **audit bay** (`KpiDetail`) for the selected KPI;
+  **Monthly trends** (`TrendChart`, Recharts) and **Category breakdowns**
+  (`CategoryChart`); and the **Ask** box (`QueryBox`) docked to the bottom.
+  The page polls `GET /api/dashboard` every 5 seconds and has loading /
+  "no data yet" (404) / error states. A top-bar link downloads the PDF.
+
+**Drill-down (Auditor/XAI traceability).** Selecting a KPI, or an insight
+that has a `related_kpi`, opens `DrillDownPanel`, which calls
+`/api/drilldown` and shows the exact rows behind the number — scoped to the
+insight's `month` when it came from a monthly trend. This closes the loop
+between a headline figure and the raw data it was computed from (design:
+[`docs/superpowers/specs/2026-09-18-auditor-drilldown-design.md`](superpowers/specs/2026-09-18-auditor-drilldown-design.md)).
 
 **Important detail:** `NEXT_PUBLIC_API_URL` is read **client-side, in the
 browser**, not inside the Docker network. When running via
@@ -257,7 +334,7 @@ internal `dashboard_agent` service name, which the browser can't resolve.
 
 ### Testing
 
-Jest + React Testing Library (`page.test.tsx`, `TrendChart.test.tsx`),
+Jest + React Testing Library (`page.test.tsx`, `TrendChart.test.tsx`, `DrillDownPanel.test.tsx`, `QueryBox.test.tsx`, ...),
 run via `next/jest` with a `ResizeObserver` polyfill (Recharts'
 `ResponsiveContainer` needs it; jsdom doesn't implement it). These tests
 mock `global.fetch` — a deliberate, standard frontend practice, not a
@@ -332,7 +409,14 @@ dependency/build story entirely.
 
 ### Docker Compose
 
-One service per agent + orchestrator + `frontend` + Postgres (`db`).
+One service per agent + orchestrator + `frontend` + Postgres (`db`). Only
+`db`, `dashboard_agent` (which runs the pipeline in-process, so it also
+installs every agent's dependencies) and `frontend` do real work; the
+orchestrator and the four pipeline-agent containers idle on
+`sleep infinity` and exist for `docker compose exec <service> pytest`.
+Verified end to end: `docker compose up -d db dashboard_agent frontend`,
+then `GET /api/pipeline/run?domain=e-commerce` completes all five stages
+and `/api/dashboard` and `/api/report.pdf` serve the result.
 Python services bind-mount the repo (`.:/app`) so code changes take effect
 without a rebuild; the `frontend` service does **not** (it has its own
 `COPY` in the Dockerfile), so frontend changes need
@@ -402,10 +486,16 @@ test` in `frontend/`).
   in-process, not independent services communicating over a network. Fine
   for this project's scale; would need real service boundaries (HTTP/RPC,
   per-agent deployability) to scale further.
-- **`execution_log.py` is unused** — the Auditor synthesizes its
-  traceability log from each stage's output after the fact, rather than
-  the Orchestrator logging step-by-step as it runs.
-- **No retry/skip/halt logic** between pipeline stages — a failure in any
-  agent currently just propagates as an unhandled exception.
+- **Two traces, not one** — the orchestrator records a step-by-step
+  `ExecutionTrace` (`execution_log.py`, exposed as
+  `BIFlowOrchestrator.execution_log`), but the Auditor's `traceability_log`
+  is still synthesized from each stage's output rather than read from it.
+- **Halt-only error handling** — a stage failure halts the run and is
+  re-raised as `PipelineStageError` naming the stage; there is no retry or
+  skip, since each stage's output feeds the next.
+- **Breakdowns are e-commerce only** — banking and telco KPIs don't define
+  breakdown dimensions yet.
+- **NL query needs a local Ollama server** — without it `/api/query`
+  returns `503`.
 - **No end-to-end (Playwright) frontend tests** — only unit-level
   rendering tests with a mocked API.
