@@ -49,6 +49,10 @@ class KPIDefinition(BaseModel):
     formula: str
     description: str
     dimensions: list[str]
+    # True only for KPIs whose values across groups can be summed to a meaningful
+    # total (sums and counts). Averages and rates are not additive, so the
+    # dashboard must not roll their tail groups up into an "Other" bucket.
+    additive: bool = False
 
 
 class KPICatalog(BaseModel):

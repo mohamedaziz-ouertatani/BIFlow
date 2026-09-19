@@ -63,15 +63,38 @@ See [`docs/architecture.md`](docs/architecture.md) for more detail.
 
 `/` is a landing/control-panel screen: pick a domain, watch the five agents
 run in sequence, then land on `/dashboard?domain=<id>` for that domain's
-results. The frontend is an "Audit Console" — every KPI traces back to its
-formula and the pipeline stage that produced it. It's organized as a
-WAI-ARIA tablist (Overview, Breakdowns, Insights, Audit Trail) with full
-keyboard navigation (arrow keys, Home/End) instead of a single long scroll.
-See [`DESIGN.md`](DESIGN.md) for the visual design system and
+results. The dashboard is a single "telemetry wall": findings first, then a KPI
+grid sorted by how much attention each KPI needs, then monthly trends and
+category breakdowns. Every KPI traces back to its formula, and clicking one
+opens a detail panel with its trend and the underlying rows. See
+[`DESIGN.md`](DESIGN.md) for the visual design system and
 [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) for the architecture
 history. The Auditor/XAI Agent also generates a multi-section PDF report
 (`agents/dashboard_agent/report.py`) styled to match the dashboard, available
-from the "Report" link in the console.
+from the "Download PDF report" button in the header.
+
+![The landing page: five agents on standby, a domain picker and a Run Pipeline button](docs/images/landing.png)
+
+*Landing page — pick a domain and run the five-agent pipeline.*
+
+![The e-commerce dashboard: findings above a grid of KPI tiles sorted by attention](docs/images/dashboard-overview.png)
+
+*Dashboard — findings above the KPI wall, sorted by attention.*
+
+![Monthly trend charts for revenue, order volume and review score](docs/images/dashboard-trends.png)
+
+*Monthly trends for each KPI that has a time series.*
+
+![Category breakdown bar charts by product category and by state](docs/images/dashboard-breakdowns.png)
+
+*Category breakdowns — sums and counts fold the long tail into "Other"; averages and rates show only the top groups, since they can't be added together.*
+
+![A KPI detail panel showing its formula, trend chart and the underlying rows](docs/images/kpi-drilldown.png)
+
+*Drilling into a KPI shows its formula, its trend and the rows behind the number.*
+
+The screenshots show the e-commerce domain run on the full Olist dataset;
+a run on `data/sample/olist` shows the same layout with smaller numbers.
 
 The API resolves `?domain=<id>` to `data/processed/dashboard_layout_<id>.json`
 (falling back to `dashboard_layout.json` when no domain is given), so each

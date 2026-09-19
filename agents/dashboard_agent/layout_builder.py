@@ -18,7 +18,8 @@ _MAX_BREAKDOWN_ITEMS = 8
 
 
 # Builds one {kpi_name}_by_{dimension} -> sorted [{label, value}] entry per
-# KPI/dimension pair that has breakdown data, capping long tails into "Other".
+# KPI/dimension pair that has breakdown data, capping long tails into "Other"
+# for additive KPIs and truncating them for averages and rates.
 def _build_category_breakdowns(kpis: KPICatalog) -> dict[str, list[dict[str, Any]]]:
     """Builds the category breakdown series for every dimensioned KPI that has data."""
     result: dict[str, list[dict[str, Any]]] = {}
@@ -34,9 +35,13 @@ def _build_category_breakdowns(kpis: KPICatalog) -> dict[str, list[dict[str, Any
                 continue
             points.sort(key=lambda p: p["value"], reverse=True)
             if len(points) > _MAX_BREAKDOWN_ITEMS:
-                head = points[: _MAX_BREAKDOWN_ITEMS - 1]
-                other_value = sum(p["value"] for p in points[_MAX_BREAKDOWN_ITEMS - 1 :])
-                points = head + [{"label": "Other", "value": other_value}]
+                if kpi.additive:
+                    head = points[: _MAX_BREAKDOWN_ITEMS - 1]
+                    other_value = sum(p["value"] for p in points[_MAX_BREAKDOWN_ITEMS - 1 :])
+                    points = head + [{"label": "Other", "value": other_value}]
+                else:
+                    # Averages and rates can't be summed into a tail bucket.
+                    points = points[:_MAX_BREAKDOWN_ITEMS]
             result[f"{kpi.name}_by_{dimension}"] = points
     return result
 
