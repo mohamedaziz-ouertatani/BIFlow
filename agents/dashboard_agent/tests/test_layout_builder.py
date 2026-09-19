@@ -1,6 +1,7 @@
 """Tests for layout_builder.py: building a JSON-serializable dashboard layout."""
 
 from agents.dashboard_agent.layout_builder import build_layout
+from agents.kpi_semantic_agent.kpi_definitions import get_kpi_definitions
 from shared.schemas.data_contracts import AnalysisResult, Insight, KPICatalog, KPIDefinition
 
 
@@ -209,3 +210,23 @@ def test_build_layout_omits_a_dimension_kpi_pair_with_no_breakdown_data():
     layout = build_layout(analysis, kpis)
 
     assert layout["category_breakdowns"] == {}
+
+
+def test_build_layout_includes_a_region_breakdown_for_every_banking_kpi():
+    definitions = get_kpi_definitions("banking")
+    kpis = KPICatalog(
+        kpis=definitions,
+        computed_values={d.name: 1.0 for d in definitions},
+        breakdowns={
+            "region": {
+                "Prague": {d.name: 2.0 for d in definitions},
+                "north Moravia": {d.name: 1.0 for d in definitions},
+            }
+        },
+        business_domain="banking",
+    )
+
+    layout = build_layout(AnalysisResult(insights=[], trends={}), kpis)
+
+    assert set(layout["category_breakdowns"]) == {f"{d.name}_by_region" for d in definitions}
+    assert "loan_good_standing_rate_by_region" in layout["category_breakdowns"]

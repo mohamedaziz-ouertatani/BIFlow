@@ -38,6 +38,7 @@ pytest tests/
   instead of defaulting it on the agent's constructor
 - [x] Add category/state KPI breakdowns (see `docs/kpi_catalog.md`) —
   `KPICatalog.breakdowns`, computed by `kpi_computation.compute_kpi_breakdowns`
-  (e-commerce only for now; banking KPIs don't define breakdown dimensions yet)
+  (e-commerce: `category`, `state`; banking: `region`; telco: `contract`,
+  `internet_service`)
 - [x] Support a second business domain (`banking`, Berka dataset) — see
   `docs/superpowers/specs/2026-09-16-multi-domain-banking-design.md`

@@ -24,6 +24,19 @@ afterEach(() => {
 });
 
 describe("DashboardPage", () => {
+  it("shows rate KPIs as percentages on their tiles", async () => {
+    const layout: DashboardLayout = {
+      kpi_cards: [{ name: "churn_rate", label: "Share of customers who have churned.", value: 0.26537 }],
+      insights: [],
+      monthly_trends: {},
+    };
+    mockFetchOnce({ jsonBody: layout });
+
+    render(<DashboardPage />);
+
+    expect(await screen.findByText("26.5%")).toBeInTheDocument();
+  });
+
   it("renders KPI tiles and the findings log together, without tabs", async () => {
     const layout: DashboardLayout = {
       kpi_cards: [

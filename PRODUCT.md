@@ -31,7 +31,7 @@ Unlike a single BI tool wired to one dataset, BIFlow's mechanism is domain-agnos
 - Frontend is Next.js (App Router) + CSS Modules + Recharts, polling a FastAPI JSON API — no server-rendering of live data, everything is client-fetched.
 - No user accounts/auth; the dashboard is read-only (aside from the query box and PDF export).
 - No dataset-switching control in the UI yet — domain is fixed by whichever pipeline run produced the current `dashboard_layout.json`.
-- Chart data available: per-metric monthly time series, and per-KPI category breakdowns (e.g. revenue by category/state for e-commerce, by region for banking), capped at 8 categories + "Other".
+- Chart data available: per-metric monthly time series, and per-KPI category breakdowns (e.g. revenue by category/state for e-commerce, by region for banking, by contract/internet service for telco), capped at 8 categories + "Other".
 
 ## Brand Commitments
 

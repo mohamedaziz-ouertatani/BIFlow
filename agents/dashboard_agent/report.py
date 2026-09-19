@@ -18,6 +18,8 @@ from reportlab.lib.colors import Color
 from reportlab.lib.pagesizes import LETTER
 from reportlab.pdfgen import canvas
 
+from shared.metrics import PERCENT_METRICS, format_percent
+
 PAGE_WIDTH, PAGE_HEIGHT = LETTER
 MARGIN = 50
 LINE_HEIGHT = 16
@@ -38,6 +40,13 @@ SEVERITY_COLORS = {"info": SIGNAL_CYAN, "warning": STATUS_WARNING, "critical": S
 DIRECTION_COLORS = {"increasing": STATUS_SUCCESS, "decreasing": STATUS_DANGER}
 DIRECTION_MARKS = {"increasing": "^", "decreasing": "v"}
 ATTENTION_RANK = {"critical": 3, "warning": 2, "info": 1, "none": 0}
+
+
+def _format_value(metric: str, value: Any) -> str:
+    """Formats a metric value for the PDF: rate KPIs as percentages, everything else as-is."""
+    if metric in PERCENT_METRICS and isinstance(value, (int, float)):
+        return format_percent(value)
+    return f"{value}"
 
 
 def _humanize(key: str) -> str:
@@ -207,7 +216,7 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
                 color=findings_color,
             )
             write_line(f"{card['label']}", font="Helvetica-Bold", size=11, color=INK)
-            write_line(f"{card['value']}", font="Courier-Bold", size=13, color=SIGNAL_CYAN, indent=8)
+            write_line(_format_value(card["name"], card["value"]), font="Courier-Bold", size=13, color=SIGNAL_CYAN, indent=8)
 
             comparison = card.get("comparison")
             if comparison:
@@ -240,7 +249,7 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
         write_section_label("Monthly trends")
         for metric, series in monthly_trends.items():
             write_line(_humanize(metric), font="Helvetica-Bold", size=10, color=INK)
-            points_text = "   ".join(f"{point['month']}: {point['value']}" for point in series)
+            points_text = "   ".join(f"{point['month']}: {_format_value(metric, point['value'])}" for point in series)
             for line in wrap_text(points_text, "Courier", 9, CONTENT_WIDTH - 8):
                 write_line(line, font="Courier", size=9, color=INK_MUTED, indent=8)
             y -= LINE_HEIGHT * 0.2
@@ -250,10 +259,11 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
     if category_breakdowns:
         write_section_label("Category breakdowns")
         for key, points in category_breakdowns.items():
+            metric = key.rpartition("_by_")[0] or key
             write_line(_humanize(key), font="Helvetica-Bold", size=10, color=INK)
             for point in points:
                 write_line(
-                    f"{point['label']}: {point['value']}",
+                    f"{point['label']}: {_format_value(metric, point['value'])}",
                     font="Courier",
                     size=9,
                     color=INK_MUTED,

@@ -52,3 +52,19 @@ def test_generate_explanations_rounds_long_float_kpi_values():
     explanations = generate_explanations(kpis, AnalysisResult(insights=[], trends={}))
     assert "137.4721818181818" not in explanations["average_order_value"]
     assert "137.47" in explanations["average_order_value"]
+
+
+def test_generate_explanations_shows_rate_kpi_values_as_percentages():
+    kpis = KPICatalog(
+        kpis=[
+            KPIDefinition(
+                name="churn_rate",
+                formula="count(churn == 'Yes') / count(*)",
+                description="Share of customers who have churned.",
+                dimensions=[],
+            )
+        ],
+        computed_values={"churn_rate": 0.26537},
+    )
+    explanations = generate_explanations(kpis, AnalysisResult(insights=[], trends={}))
+    assert explanations["churn_rate"].endswith("= 26.5%.")

@@ -110,3 +110,29 @@ def test_build_pdf_sorts_kpis_by_attention_and_labels_findings():
     assert b"1 critical" in pdf_bytes
     assert b"No findings" in pdf_bytes
     assert b"2018-02" in pdf_bytes
+
+
+def test_build_pdf_shows_rate_kpis_and_their_breakdowns_as_percentages():
+    layout = {
+        "kpi_cards": [{"name": "churn_rate", "label": "Churn rate", "value": 0.26537}],
+        "insights": [],
+        "monthly_trends": {},
+        "category_breakdowns": {
+            "churn_rate_by_contract": [{"label": "Month-to-month", "value": 0.42710}]
+        },
+    }
+    pdf_bytes = build_pdf(layout)
+    assert b"26.5%" in pdf_bytes
+    assert b"42.7%" in pdf_bytes
+    assert b"0.26537" not in pdf_bytes
+
+
+def test_build_pdf_leaves_non_rate_values_as_plain_numbers():
+    layout = {
+        "kpi_cards": [{"name": "total_customers", "label": "Customers", "value": 7043}],
+        "insights": [],
+        "monthly_trends": {},
+    }
+    pdf_bytes = build_pdf(layout)
+    assert b"7043" in pdf_bytes
+    assert b"%" not in pdf_bytes.split(b"Customers")[1][:60]
