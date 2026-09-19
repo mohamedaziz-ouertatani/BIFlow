@@ -311,9 +311,10 @@ pytest tests/
 | Data Engineering Agent (Profiler + Cleaning + ETL) | Mohamed Aziz Ouertatani |
 | BI Semantic & KPI Agent | Mohamed Aymen Hamzeoui |
 | BI Analyst Agent | Mohamed Aymen Hamzeoui |
-| Dashboard Generator Agent | Mohamed Aymen Hamzeoui |
+| Dashboard Generator Agent | Mohamed Aziz Ouertatani |
 | BI Auditor/XAI Agent | Mohamed Aymen Hamzeoui |
-| Orchestrator + Frontend | Mohamed Aziz Ouertatani |
+| Frontend | Mohamed Aziz Ouertatani |
+| Orchestrator | Mohamed Aziz Ouertatani & Mohamed Aymen Hamzeoui |
 
 ## 8. Immediate next steps after scaffolding
 

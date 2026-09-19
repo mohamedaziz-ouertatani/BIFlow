@@ -42,12 +42,12 @@ See [`docs/architecture.md`](docs/architecture.md) for more detail.
 | Component | Owner |
 |---|---|
 | Data Engineering Agent (Profiler + Cleaning + ETL) | Mohamed Aziz Ouertatani |
-| Orchestrator | Mohamed Aziz Ouertatani |
+| Dashboard Generator Agent | Mohamed Aziz Ouertatani |
 | Frontend (Next.js dashboard) | Mohamed Aziz Ouertatani |
 | BI Semantic & KPI Agent | Mohamed Aymen Hamzeoui |
 | BI Analyst Agent | Mohamed Aymen Hamzeoui |
-| Dashboard Generator Agent | Mohamed Aymen Hamzeoui |
 | BI Auditor/XAI Agent | Mohamed Aymen Hamzeoui |
+| Orchestrator | Mohamed Aziz Ouertatani & Mohamed Aymen Hamzeoui |
 
 ## Repository layout
 
