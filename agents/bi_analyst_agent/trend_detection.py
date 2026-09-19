@@ -9,6 +9,8 @@ from typing import Any
 
 from shared.schemas.data_contracts import KPICatalog
 
+# Hardcoded business targets (not learned from the data): a KPI at or above its target is
+# 'healthy', below it is 'concerning'.
 THRESHOLDS = {
     "on_time_delivery_rate": 0.9,
     "average_review_score": 4.0,

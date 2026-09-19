@@ -2,6 +2,9 @@
 
 import pandas as pd
 
+# Berka stores dates as bare numbers like 930107 (YYMMDD). pandas can't guess that format, and
+# the generic date detection in clean_tables only matches column names like *_date / *_at, so
+# the banking date columns are listed here with their explicit strptime format.
 DOMAIN_DATETIME_FORMATS = {
     "banking": {
         ("account", "date"): "%y%m%d",
@@ -40,6 +43,8 @@ def _apply_ecommerce_rules(
 # Normalizes the legacy 'VYBER' transaction type to 'VYDAJ', banking only.
 def _apply_banking_rules(name: str, df: pd.DataFrame, transformations: list[str]) -> pd.DataFrame:
     if name == "trans" and "type" in df.columns:
+        # VYBER means 'cash withdrawal' (a debit) and normally lives in the `operation` column, but a
+        # few rows carry it in `type`. Fold it into VYDAJ so debits are counted consistently.
         n_bad = int((df["type"] == "VYBER").sum())
         if n_bad:
             df["type"] = df["type"].replace("VYBER", "VYDAJ")
@@ -53,6 +58,9 @@ def _apply_banking_rules(name: str, df: pd.DataFrame, transformations: list[str]
 # Coerces the blank TotalCharges values (new customers with tenure=0) to 0, telco only.
 def _apply_telco_rules(name: str, df: pd.DataFrame, transformations: list[str]) -> pd.DataFrame:
     if name == "customers" and "TotalCharges" in df.columns:
+        # TotalCharges is a blank string for brand-new customers (tenure=0), which makes pandas read
+        # the whole column as text. errors='coerce' turns those blanks into NaN, then they become 0:
+        # a customer who hasn't been billed yet has been charged nothing so far.
         numeric = pd.to_numeric(df["TotalCharges"], errors="coerce")
         n_blank = int(numeric.isna().sum())
         if n_blank:
@@ -86,6 +94,8 @@ def clean_tables(
         if dropped:
             transformations.append(f"{name}: dropped {dropped} exact duplicate rows")
 
+        # Heuristic: columns named *timestamp*, *_date or *_at hold dates (Olist's naming).
+        # Berka's columns don't follow it, hence the explicit formats further down.
         date_cols = [
             c for c in df.columns if "timestamp" in c or c.endswith(("_date", "_at"))
         ]

@@ -60,8 +60,10 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    // Keep the mission log scrolled to the newest line whenever an entry is added.
     const node = logRef.current;
     if (!node) return;
+    // jsdom (the Jest test DOM) has no scrollTo, so fall back to setting scrollTop directly.
     if (typeof node.scrollTo === "function") {
       node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
     } else {
@@ -70,6 +72,8 @@ export default function LandingPage() {
   }, [state.log.length]);
 
   useEffect(() => {
+    // After a successful run, wait 500ms so 'Sequence complete' is visible, then open that domain's
+    // dashboard. The cleanup cancels the timer if the state changes before it fires.
     if (state.status !== "succeeded" || !selectedDomain) return;
     const timeout = setTimeout(() => {
       router.push(`/dashboard?domain=${selectedDomain}`);

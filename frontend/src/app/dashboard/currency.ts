@@ -15,6 +15,7 @@ const PERCENT_METRICS = new Set(["on_time_delivery_rate", "loan_good_standing_ra
 
 // Shows a 0-1 fraction as a percentage with at most one decimal (0.2654 -> "26.5%", 0.9 -> "90%").
 function formatPercent(fraction: number): string {
+  // style: 'percent' multiplies by 100 itself, so pass the raw 0-1 fraction.
   return new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 }).format(fraction);
 }
 
@@ -42,6 +43,7 @@ export function formatMetricValueCompact(metricName: string, value: number): str
   }
   const currency = METRIC_CURRENCY[metricName];
   if (!currency) {
+    // 'compact' notation abbreviates large numbers (1200 -> 1.2K).
     return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(
       value,
     );

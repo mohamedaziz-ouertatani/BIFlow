@@ -12,6 +12,8 @@ import pandas as pd
 
 _RowFilter = Callable[[pd.DataFrame], pd.DataFrame]
 
+# Each KPI maps to a function that selects the rows counted in it. `lambda df: df` means every
+# row counts; the other lambdas drop rows that shouldn't (canceled orders, missing values...).
 _ECOMMERCE_FILTERS: dict[str, _RowFilter] = {
     "total_revenue": lambda df: df[df["order_status"] != "canceled"],
     "average_order_value": lambda df: df[df["order_status"] != "canceled"],
@@ -62,6 +64,8 @@ def filter_rows(
     matching = _FILTERS_BY_DOMAIN[business_domain][kpi_name](df)
 
     date_column = DATE_COLUMN_BY_DOMAIN[business_domain]
+    # Month scope: the CSV stores dates as text, so parse them first, then compare 'YYYY-MM'
+    # strings (the same format the monthly trends use as their month labels).
     if month and date_column:
         dates = pd.to_datetime(matching[date_column])
         matching = matching[dates.dt.strftime("%Y-%m") == month]

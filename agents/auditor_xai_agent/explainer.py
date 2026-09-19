@@ -11,6 +11,8 @@ def generate_explanations(kpis: KPICatalog, analysis: AnalysisResult) -> dict[st
 
     for kpi in kpis.kpis:
         value = kpis.computed_values.get(kpi.name)
+        # Rates are shown as percentages and other floats rounded to 2 decimals;
+        # None (no data) and ints pass through unchanged.
         if kpi.name in PERCENT_METRICS and isinstance(value, float):
             value = format_percent(value)
         elif isinstance(value, float):

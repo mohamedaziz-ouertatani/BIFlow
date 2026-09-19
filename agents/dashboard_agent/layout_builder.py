@@ -33,15 +33,20 @@ def _build_category_breakdowns(kpis: KPICatalog) -> dict[str, list[dict[str, Any
             ]
             if not points:
                 continue
+            # Largest first, so the biggest groups are the ones that survive the cap below.
             points.sort(key=lambda p: p["value"], reverse=True)
             if len(points) > _MAX_BREAKDOWN_ITEMS:
                 if kpi.additive:
+                    # Keep 7 groups + one 'Other' bucket = 8 bars total. Only valid for additive KPIs, whose
+                    # group values can be summed.
                     head = points[: _MAX_BREAKDOWN_ITEMS - 1]
                     other_value = sum(p["value"] for p in points[_MAX_BREAKDOWN_ITEMS - 1 :])
                     points = head + [{"label": "Other", "value": other_value}]
                 else:
                     # Averages and rates can't be summed into a tail bucket.
                     points = points[:_MAX_BREAKDOWN_ITEMS]
+            # Key format '<kpi>_by_<dimension>' is split apart again by the frontend
+            # (CategoryChart.parseBreakdownKey) and by report.py, so keep all three in sync.
             result[f"{kpi.name}_by_{dimension}"] = points
     return result
 
@@ -56,6 +61,7 @@ def build_layout(analysis: AnalysisResult, kpis: KPICatalog) -> dict[str, Any]:
             "name": kpi.name,
             "label": kpi.description,
             "value": kpis.computed_values.get(kpi.name),
+            # Only KPIs that have a monthly trend get a month-over-month comparison badge.
             "comparison": (
                 {field: monthly[kpi.name][field] for field in _COMPARISON_FIELDS}
                 if kpi.name in monthly

@@ -88,6 +88,9 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
     """
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=LETTER, pageCompression=0)
+    # ReportLab's origin is the BOTTOM-left corner, so `y` starts at the top margin and decreases
+    # as lines are written. The helpers below are closures that share `pdf`, `y` and `page_number`;
+    # `nonlocal` lets them update those shared values.
     y = PAGE_HEIGHT - MARGIN
     page_number = 1
 
@@ -110,6 +113,7 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
         indent: float = 0,
     ) -> None:
         nonlocal y
+        # Out of room: stamp the footer, start a new page and reset the cursor to the top.
         if y < MARGIN + FOOTER_RESERVE:
             draw_footer()
             pdf.showPage()
@@ -119,6 +123,8 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
         pdf.drawString(MARGIN + indent, y, text)
         y -= LINE_HEIGHT
 
+    # Greedy word wrap: add words while the line still fits in max_width (measured in the actual font);
+    # `or not current` guarantees a single over-long word still gets its own line.
     def wrap_text(text: str, font: str, size: int, max_width: float) -> list[str]:
         words = str(text).split()
         lines: list[str] = []
@@ -136,6 +142,7 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
 
     def draw_rule(color: Color, dashed: bool = False, indent: float = 0) -> None:
         nonlocal y
+        # saveState/restoreState so the dash style set here doesn't leak into later drawing.
         pdf.saveState()
         pdf.setStrokeColor(color)
         pdf.setLineWidth(0.75)
@@ -199,6 +206,8 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
     if kpi_cards:
         write_section_label("KPI telemetry")
         write_line("sorted by attention", font="Courier", size=8, color=INK_MUTED)
+        # Sort by attention (highest severity first); the original index is the tie-breaker,
+        # and it also gives each KPI a stable KPI·NN code regardless of the sorted order.
         wall = sorted(
             (
                 (index, card, *_attention_for(card["name"], insights))
@@ -259,6 +268,8 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
     if category_breakdowns:
         write_section_label("Category breakdowns")
         for key, points in category_breakdowns.items():
+            # Breakdown keys look like '<kpi>_by_<dimension>': take what's before the last '_by_' to
+            # recover the KPI name (used to format values, e.g. rates as percentages).
             metric = key.rpartition("_by_")[0] or key
             write_line(_humanize(key), font="Helvetica-Bold", size=10, color=INK)
             for point in points:

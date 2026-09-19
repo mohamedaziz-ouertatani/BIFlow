@@ -7,6 +7,8 @@ const QUERY = "(prefers-reduced-motion: reduce)";
 // Tracks the OS-level "reduce motion" preference so decorative animation
 // (SVG motion paths, CSS keyframes) can be skipped for anyone who set it.
 export function usePrefersReducedMotion(): boolean {
+  // Lazy initializer: reads the OS setting once on first render. The `typeof window` check is needed
+  // because Next.js also renders components on the server, where `window` doesn't exist.
   const [reduced, setReduced] = useState(
     () => typeof window !== "undefined" && window.matchMedia(QUERY).matches
   );

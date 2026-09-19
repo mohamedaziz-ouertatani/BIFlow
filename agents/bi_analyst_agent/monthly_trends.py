@@ -33,8 +33,11 @@ def _detect_anomaly(series: pd.Series) -> tuple[bool, float | None]:
     if len(history) < MIN_HISTORY_FOR_ANOMALY:
         return False, None
     std = float(history.std(ddof=0))
+    # A perfectly flat history has std 0, which would divide by zero: treat it as 'no anomaly'.
     if std == 0:
         return False, None
+    # z-score = how many standard deviations the latest month sits from the average of the earlier
+    # months (ddof=0 -> population std). |z| > 2 is flagged: roughly the outer 5% for bell-shaped data.
     z_score = (float(series.iloc[-1]) - float(history.mean())) / std
     return abs(z_score) > ANOMALY_Z_SCORE_THRESHOLD, round(z_score, 2)
 
@@ -44,8 +47,10 @@ def _trend_entry(series: pd.Series) -> dict[str, Any] | None:
     """Builds a trend entry from the last two months of a monthly series."""
     if len(series) < 2:
         return None
+    # Trends compare only the last two months of the (already 'complete') series.
     previous_month, latest_month = series.index[-2], series.index[-1]
     previous_value, latest_value = float(series.iloc[-2]), float(series.iloc[-1])
+    # Percent change vs the previous month; 0.0 if the previous value is 0 (avoids dividing by zero).
     pct_change = (
         (latest_value - previous_value) / previous_value * 100 if previous_value else 0.0
     )
@@ -77,6 +82,8 @@ def _complete_months(count_by_month: pd.Series) -> pd.Index:
     """
     if count_by_month.empty:
         return count_by_month.index
+    # A month is 'complete' if it has at least 20% of the busiest month's rows. This also drops
+    # sparse months at the start of the data, not only stray trailing ones.
     threshold = count_by_month.max() * MIN_ORDER_COUNT_RATIO
     return count_by_month[count_by_month >= threshold].index
 
@@ -98,8 +105,12 @@ def _compute_ecommerce_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, 
     """Computes month-over-month trends for revenue, order count, and review score."""
     df = analytical_df.copy()
     df["order_purchase_timestamp"] = pd.to_datetime(df["order_purchase_timestamp"])
+    # 'YYYY-MM' text label: sorts chronologically and matches the drill-down's month filter.
     df["month"] = df["order_purchase_timestamp"].dt.strftime("%Y-%m")
 
+    # One row per order: the table has one row per item, so counting orders or averaging review
+    # scores per month must collapse to order level first (else multi-item orders count many times).
+    # Revenue below is different: `price` is per item, so it sums the item rows directly.
     orders_level = df[["order_id", "month", "review_score"]].drop_duplicates(subset="order_id")
 
     non_canceled = df[df["order_status"] != "canceled"]
@@ -107,6 +118,8 @@ def _compute_ecommerce_monthly_trends(analytical_df: pd.DataFrame) -> dict[str, 
     order_count_by_month = orders_level.groupby("month")["order_id"].nunique().sort_index()
     review_score_by_month = orders_level.groupby("month")["review_score"].mean().sort_index()
 
+    # Keep only complete months and align all three series to them, so an incomplete month
+    # disappears from every trend at once.
     complete_months = _complete_months(order_count_by_month)
     revenue_by_month = revenue_by_month.reindex(complete_months)
     order_count_by_month = order_count_by_month.reindex(complete_months)

@@ -37,6 +37,7 @@ const INITIAL_STATE: PipelineRunState = { status: "idle", stages: IDLE_STAGES, e
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// Module-level counter: gives every log line a unique id to use as React's `key`.
 let logSeq = 0;
 function nodeLabel(stage: AgentId): string {
   return AGENT_NODES.find((node) => node.id === stage)!.label;
@@ -51,9 +52,11 @@ function logEntry(text: string): LogEntry {
 // each subsystem panel and log line reflects exactly what the backend reports.
 export function usePipelineRun() {
   const [state, setState] = useState<PipelineRunState>(INITIAL_STATE);
+  // A ref (not state) holds the open connection: replacing it must not trigger a re-render.
   const sourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
+    // Cleanup on unmount: close the stream so the connection doesn't stay open in the background.
     return () => sourceRef.current?.close();
   }, []);
 
@@ -66,6 +69,8 @@ export function usePipelineRun() {
       log: [logEntry(`${nodeLabel("orchestrator")} — ${STAGE_LABELS.orchestrator.active}`)],
     });
 
+    // EventSource is the browser's built-in client for Server-Sent Events: one long-lived GET request
+    // that the server keeps writing `data: ...` messages to.
     const source = new EventSource(
       `${API_URL}/api/pipeline/run?domain=${encodeURIComponent(domain)}`
     );
@@ -74,12 +79,15 @@ export function usePipelineRun() {
     source.onmessage = (event) => {
       const payload = JSON.parse(event.data) as PipelineEvent;
 
+      // Functional update: derive the next state from the latest `prev`. Events can arrive faster than
+      // React re-renders, so reading a captured `state` here could be stale.
       setState((prev) => {
         switch (payload.type) {
           case "stage_started": {
             const stage = payload.stage as AgentId;
             return {
               ...prev,
+              // The first real stage starting means the orchestrator's dispatch phase is over.
               stages: { ...prev.stages, orchestrator: "done", [stage]: "active" },
               log: [...prev.log, logEntry(`${nodeLabel(stage)} — ${STAGE_LABELS[stage].active}`)],
             };
@@ -121,6 +129,8 @@ export function usePipelineRun() {
       });
     };
 
+    // EventSource silently auto-reconnects after an error, which would start a second pipeline run:
+    // close it ourselves. Only a run still in progress counts as a lost connection.
     source.onerror = () => {
       source.close();
       setState((prev) =>

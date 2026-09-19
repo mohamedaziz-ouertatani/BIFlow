@@ -80,6 +80,8 @@ def create_app(
     ).split(",")
 
     app = FastAPI(title="BIFlow Dashboard API")
+    # CORS: the browser loads the dashboard from :3000 but calls this API on :8000 (a different
+    # origin), and refuses the response unless the API explicitly allows that origin.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -116,6 +118,8 @@ def create_app(
     # Loads an analytical CSV into memory, cached by (path, mtime) so repeat
     # drill-down requests don't re-read a potentially million-row file.
     def _load_analytical_df(path: str) -> pd.DataFrame:
+        # The file's modification time changes whenever a pipeline run rewrites the CSV,
+        # which invalidates the cached copy.
         mtime = os.path.getmtime(path)
         cached = _analytical_df_cache.get(path)
         if cached and cached[0] == mtime:
@@ -137,8 +141,13 @@ def create_app(
         layout_path = _layout_path_for(domain)  # validates domain against ALLOWED_DOMAINS
         analytical_path = _analytical_path_for(domain)
         dataset_path, dataset_name = domain_datasets[domain]
+        # How streaming works: the orchestrator is blocking code, so it runs in a background thread and
+        # pushes each stage event into this thread-safe queue. The generator below drains the queue and
+        # sends each item to the browser as a Server-Sent Event; `None` is the 'stream is over' marker.
         events: queue.Queue[dict | None] = queue.Queue()
 
+        # Called by the orchestrator (in the worker thread) on every stage transition; translates it
+        # into the event shape the frontend's usePipelineRun hook expects.
         def on_event(stage: str, status: str, details: dict) -> None:
             payload: dict = {"type": _STATUS_TO_EVENT_TYPE[status], "stage": stage}
             if details.get("error"):
@@ -160,8 +169,11 @@ def create_app(
             except PipelineStageError as exc:
                 events.put({"type": "pipeline_failed", "stage": exc.stage, "error": str(exc)})
             finally:
+                # Always send the end marker (even after an unexpected error) so the stream stops
+                # and the HTTP response ends instead of hanging forever.
                 events.put(None)
 
+        # daemon=True: don't keep the server process alive just for this worker thread.
         threading.Thread(target=run, daemon=True).start()
 
         def event_stream():
@@ -169,6 +181,8 @@ def create_app(
                 event = events.get()
                 if event is None:
                     break
+                # SSE wire format: a message is 'data: <payload>' followed by a blank line; the browser's
+                # EventSource splits the stream on that blank line.
                 yield f"data: {json.dumps(event)}\n\n"
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
@@ -195,10 +209,13 @@ def create_app(
             matching = filter_rows(df, domain, kpi, month)
         except KeyError:
             raise HTTPException(status_code=404, detail=f"Unknown KPI: {kpi!r}")
+        # Only the first rows are sent (the table can hold ~100k); total_rows tells the UI how many matched.
         page = matching.head(DRILLDOWN_ROW_LIMIT)
         return {
             "total_rows": int(len(matching)),
             "columns": list(page.columns),
+            # Round-trips through pandas' JSON writer so NaN becomes null and timestamps become plain values;
+            # page.to_dict() would leave NaN in, which isn't valid JSON.
             "rows": json.loads(page.to_json(orient="records")),
         }
 

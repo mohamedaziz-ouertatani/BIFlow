@@ -28,6 +28,8 @@ const METRIC_LABELS: Record<string, string> = {
 
 // Splits a "{kpi_name}_by_{dimension}" breakdown key into its two parts.
 function parseBreakdownKey(key: string): { metric: string; dimension: string } {
+  // Split at the LAST '_by_' (the `+ 4` below skips those 4 characters): KPI names contain
+  // underscores too, so the last occurrence is the metric/dimension boundary.
   const separatorIndex = key.lastIndexOf("_by_");
   if (separatorIndex === -1) {
     return { metric: key, dimension: "" };
@@ -49,8 +51,11 @@ export default function CategoryChart({
   const { metric, dimension } = parseBreakdownKey(breakdownKey);
   const metricLabel = METRIC_LABELS[metric] ?? metric;
   const label = dimension ? `${metricLabel} by ${dimension.replace(/_/g, " ")}` : metricLabel;
+  // About 32px per bar, clamped between 120px and 320px so tiny and huge charts both look right.
   const chartHeight = Math.min(320, Math.max(120, points.length * 32));
 
+  // Recharts quirk: layout='vertical' draws HORIZONTAL bars, so the axes swap roles compared to a
+  // column chart: XAxis is the numeric value axis, YAxis is the category axis (the labels).
   return (
     <div className={styles.chartCard}>
       <div className={styles.chartLabel}>{label}</div>

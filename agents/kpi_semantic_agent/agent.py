@@ -45,9 +45,13 @@ class KPISemanticAgent:
         kpi_definitions = get_kpi_definitions(business_domain)
         date_columns = DATE_COLUMNS_BY_DOMAIN[business_domain]
 
+        # The analytical table was saved as CSV, so dates come back as plain text: parse the columns the
+        # KPI math compares. low_memory=False reads the file in one pass so column types are inferred
+        # consistently (avoids mixed-type warnings).
         df = pd.read_csv(cleaned.dataset_path, parse_dates=date_columns, low_memory=False)
         computed_values = compute_kpis(df, business_domain)
 
+        # Only compute breakdowns for dimensions that at least one KPI actually declares.
         dimensions_used = {d for kpi in kpi_definitions for d in kpi.dimensions}
         dimension_columns = DIMENSION_COLUMNS_BY_DOMAIN[business_domain]
         breakdowns = {
