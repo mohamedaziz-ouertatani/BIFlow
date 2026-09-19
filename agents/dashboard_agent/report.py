@@ -1,9 +1,13 @@
 """PDF snapshot generation from the dashboard layout.
 
-Styled to echo the Audit Console design system (DESIGN.md): ink/muted-ink
-neutrals, a single signal-cyan accent, hairline dividers instead of boxes,
-and a mono/sans split where measured values (KPI numbers, trend points,
-breakdown values) render in Courier and everything else in Helvetica.
+Mirrors the dashboard's Telemetry Wall (DESIGN.md) on paper: a severity-sorted
+Findings log first, then KPI telemetry sorted by attention (the highest
+severity among insights that reference a KPI), then trends and breakdowns.
+Print styling keeps the Mission Control conventions: ink/muted-ink neutrals,
+one cyan accent, hairline dividers instead of boxes, amber for warnings, red
+for critical or decreasing, and a mono/sans split where measured values
+(KPI numbers, trend points, breakdown values) render in Courier and
+everything else in Helvetica.
 """
 
 import io
@@ -33,6 +37,7 @@ SEVERITY_MARKS = {"info": "[i]", "warning": "[!]", "critical": "[x]"}
 SEVERITY_COLORS = {"info": SIGNAL_CYAN, "warning": STATUS_WARNING, "critical": STATUS_DANGER}
 DIRECTION_COLORS = {"increasing": STATUS_SUCCESS, "decreasing": STATUS_DANGER}
 DIRECTION_MARKS = {"increasing": "^", "decreasing": "v"}
+ATTENTION_RANK = {"critical": 3, "warning": 2, "info": 1, "none": 0}
 
 
 def _humanize(key: str) -> str:
@@ -40,8 +45,32 @@ def _humanize(key: str) -> str:
     return key.replace("_", " ").title()
 
 
-# Renders the dashboard layout (KPIs, trends, breakdowns, insights) as a
-# multi-page PDF snapshot styled to match the live Audit Console dashboard.
+def _severity_of(insight: dict[str, Any]) -> str:
+    """Collapses any unknown severity to "info", matching the dashboard."""
+    severity = insight.get("severity", "info")
+    return severity if severity in ("critical", "warning") else "info"
+
+
+def _attention_for(kpi_name: str, insights: list[dict[str, Any]]) -> tuple[str, int]:
+    """Returns (highest severity, finding count) among insights referencing a KPI."""
+    level, count = "none", 0
+    for insight in insights:
+        if insight.get("related_kpi") != kpi_name:
+            continue
+        count += 1
+        severity = _severity_of(insight)
+        if ATTENTION_RANK[severity] > ATTENTION_RANK[level]:
+            level = severity
+    return level, count
+
+
+def _findings_text(level: str, count: int) -> str:
+    """Never renders "no findings" as healthy, same as the dashboard tiles."""
+    return "No findings" if count == 0 else f"{count} {level}"
+
+
+# Renders the dashboard layout (findings, KPI telemetry, trends, breakdowns) as
+# a multi-page PDF snapshot mirroring the live Mission Control dashboard.
 def build_pdf(layout: dict[str, Any]) -> bytes:
     """Builds a PDF snapshot of the dashboard layout and returns its raw bytes.
 
@@ -60,7 +89,7 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
         pdf.line(MARGIN, MARGIN - 12, PAGE_WIDTH - MARGIN, MARGIN - 12)
         pdf.setFont("Courier", 8)
         pdf.setFillColor(INK_MUTED)
-        pdf.drawString(MARGIN, MARGIN - 24, "BIFlow Audit Console")
+        pdf.drawString(MARGIN, MARGIN - 24, "BIFlow Mission Control")
         pdf.drawRightString(PAGE_WIDTH - MARGIN, MARGIN - 24, f"Page {page_number}")
         page_number += 1
 
@@ -114,7 +143,7 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
         draw_rule(HAIRLINE)
 
     # --- Header -----------------------------------------------------------
-    write_line("BIFlow Audit Console Report", font="Helvetica-Bold", size=18, color=INK)
+    write_line("BIFlow Mission Control Report", font="Helvetica-Bold", size=18, color=INK)
     domain = layout.get("business_domain")
     if domain:
         write_line(f"Domain: {domain}", font="Courier-Bold", size=9, color=SIGNAL_CYAN)
@@ -124,11 +153,59 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
     draw_rule(HAIRLINE_STRONG)
     y -= LINE_HEIGHT * 0.2
 
-    # --- KPIs ---------------------------------------------------------------
+    insights = layout.get("insights", [])
+    critical_count = sum(1 for i in insights if _severity_of(i) == "critical")
+    warning_count = sum(1 for i in insights if _severity_of(i) == "warning")
+
+    # --- Findings -----------------------------------------------------------
+    if insights:
+        write_section_label("Findings")
+        summary = " · ".join(
+            part
+            for part in (
+                f"{critical_count} critical" if critical_count else "",
+                f"{warning_count} warning" if warning_count else "",
+            )
+            if part
+        )
+        write_line(summary or f"{len(insights)} logged", font="Courier", size=9, color=INK_MUTED)
+        ranked = sorted(insights, key=lambda i: -ATTENTION_RANK[_severity_of(i)])
+        for insight in ranked:
+            severity = _severity_of(insight)
+            mark = SEVERITY_MARKS[severity]
+            color = SEVERITY_COLORS[severity]
+            write_line(f"{mark} {insight['title']}", font="Helvetica-Bold", size=10, color=color)
+            for line in wrap_text(insight["description"], "Helvetica", 9, CONTENT_WIDTH - 8):
+                write_line(line, font="Helvetica", size=9, color=INK_MUTED, indent=8)
+            related = insight.get("related_kpi")
+            if related:
+                month = insight.get("month")
+                ref = f"KPI: {related}" + (f" · {month}" if month else "")
+                write_line(ref, font="Courier", size=8, color=INK_MUTED, indent=8)
+            y -= LINE_HEIGHT * 0.25
+            draw_rule(HAIRLINE)
+
+    # --- KPI telemetry ------------------------------------------------------
     kpi_cards = layout.get("kpi_cards", [])
     if kpi_cards:
-        write_section_label("KPIs")
-        for card in kpi_cards:
+        write_section_label("KPI telemetry")
+        write_line("sorted by attention", font="Courier", size=8, color=INK_MUTED)
+        wall = sorted(
+            (
+                (index, card, *_attention_for(card["name"], insights))
+                for index, card in enumerate(kpi_cards)
+            ),
+            key=lambda item: (-ATTENTION_RANK[item[2]], item[0]),
+        )
+        for index, card, level, count in wall:
+            code = f"KPI·{index + 1:02d}"
+            findings_color = SEVERITY_COLORS.get(level, INK_MUTED)
+            write_line(
+                f"{code}  {_findings_text(level, count)}",
+                font="Courier-Bold",
+                size=8,
+                color=findings_color,
+            )
             write_line(f"{card['label']}", font="Helvetica-Bold", size=11, color=INK)
             write_line(f"{card['value']}", font="Courier-Bold", size=13, color=SIGNAL_CYAN, indent=8)
 
@@ -160,7 +237,7 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
     # --- Trends ---------------------------------------------------------------
     monthly_trends = layout.get("monthly_trends", {})
     if monthly_trends:
-        write_section_label("Trends")
+        write_section_label("Monthly trends")
         for metric, series in monthly_trends.items():
             write_line(_humanize(metric), font="Helvetica-Bold", size=10, color=INK)
             points_text = "   ".join(f"{point['month']}: {point['value']}" for point in series)
@@ -171,7 +248,7 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
     # --- Breakdowns -------------------------------------------------------
     category_breakdowns = layout.get("category_breakdowns", {})
     if category_breakdowns:
-        write_section_label("Breakdowns")
+        write_section_label("Category breakdowns")
         for key, points in category_breakdowns.items():
             write_line(_humanize(key), font="Helvetica-Bold", size=10, color=INK)
             for point in points:
@@ -183,20 +260,6 @@ def build_pdf(layout: dict[str, Any]) -> bytes:
                     indent=8,
                 )
             y -= LINE_HEIGHT * 0.2
-
-    # --- Insights -----------------------------------------------------------
-    insights = layout.get("insights", [])
-    if insights:
-        write_section_label("Insights")
-        for insight in insights:
-            severity = insight.get("severity", "info")
-            mark = SEVERITY_MARKS.get(severity, "[i]")
-            color = SEVERITY_COLORS.get(severity, SIGNAL_CYAN)
-            write_line(f"{mark} {insight['title']}", font="Helvetica-Bold", size=10, color=color)
-            for line in wrap_text(insight["description"], "Helvetica", 9, CONTENT_WIDTH - 8):
-                write_line(line, font="Helvetica", size=9, color=INK_MUTED, indent=8)
-            y -= LINE_HEIGHT * 0.25
-            draw_rule(HAIRLINE)
 
     draw_footer()
     pdf.showPage()
