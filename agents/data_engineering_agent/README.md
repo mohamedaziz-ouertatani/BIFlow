@@ -1,6 +1,6 @@
 # Data Engineering Agent
 
-**Owner:** Person A
+**Owner:** Mohamed Aziz Ouertatani
 
 ## Purpose
 Profiles the raw Olist Brazilian E-Commerce dataset (8 related CSVs),

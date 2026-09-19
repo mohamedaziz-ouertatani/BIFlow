@@ -1,6 +1,6 @@
 # BI Analyst Agent
 
-**Owner:** Person C
+**Owner:** Mohamed Aymen Hamzeoui
 
 ## Purpose
 Analyzes the pipeline output to flag which KPIs are healthy vs. concerning

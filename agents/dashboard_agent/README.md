@@ -1,6 +1,6 @@
 # Dashboard Generator Agent
 
-**Owner:** Person D
+**Owner:** Mohamed Aymen Hamzeoui
 
 ## Purpose
 Builds the data behind the interactive dashboard and serves it to the

@@ -1,6 +1,6 @@
 # Orchestrator
 
-**Owner:** Person E
+**Owner:** Mohamed Aziz Ouertatani
 
 ## Purpose
 Coordinates the BIFlow pipeline end-to-end. Calls each agent in sequence

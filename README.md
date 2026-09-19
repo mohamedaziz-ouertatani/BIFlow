@@ -39,13 +39,15 @@ See [`docs/architecture.md`](docs/architecture.md) for more detail.
 
 ## Team assignment
 
-| Agent | Owner |
+| Component | Owner |
 |---|---|
-| Data Engineering Agent (Profiler + Cleaning + ETL) | Person A |
-| BI Semantic & KPI Agent | Person B |
-| BI Analyst Agent | Person C |
-| Dashboard Generator Agent | Person D |
-| BI Auditor/XAI Agent + Orchestrator | Person E |
+| Data Engineering Agent (Profiler + Cleaning + ETL) | Mohamed Aziz Ouertatani |
+| Orchestrator | Mohamed Aziz Ouertatani |
+| Frontend (Next.js dashboard) | Mohamed Aziz Ouertatani |
+| BI Semantic & KPI Agent | Mohamed Aymen Hamzeoui |
+| BI Analyst Agent | Mohamed Aymen Hamzeoui |
+| Dashboard Generator Agent | Mohamed Aymen Hamzeoui |
+| BI Auditor/XAI Agent | Mohamed Aymen Hamzeoui |
 
 ## Repository layout
 
@@ -54,7 +56,8 @@ See [`docs/architecture.md`](docs/architecture.md) for more detail.
 - `frontend/` — Next.js dashboard (polls the Dashboard Generator Agent's API)
 - `shared/` — shared Pydantic schemas, config, and utils used by all components
 - `data/` — raw/processed data (gitignored) and a committed sample dataset
-- `docs/` — architecture notes, KPI catalog, report templates
+- `docs/` — architecture notes, KPI catalog, report templates, and the
+  original project skeleton brief
 - `tests/` — end-to-end integration test for the full pipeline
 - [`DESIGN.md`](DESIGN.md) — the dashboard's "Audit Console" design system
   (tokens, typography, component specs) generated from the shipped UI
@@ -234,3 +237,7 @@ for the host-vs-container connection details, including the port 5433 remap.
     visual system (see [`DESIGN.md`](DESIGN.md)), restructured into a
     WAI-ARIA tablist with keyboard navigation, and an expanded multi-section
     PDF report matching the dashboard's design system.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
